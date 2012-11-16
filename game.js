@@ -88,6 +88,8 @@ function start() {
 
     var G = 0.8;
 
+    anm.M[C.MOD_COLLISIONS].predictSpan = 0.06;
+
     var world = {
         speed : 3,
         jump: 0,
@@ -103,43 +105,55 @@ function start() {
     var avatar = b().band([0,Number.MAX_VALUE])
     .rect([0,0],[70,70]);
 
-    function render(w) {
-        avatar.v.xdata.pos[0] = w.speed*10;
-        avatar.v.xdata.pos[1] = w.py;
+    function loop(w, input, observ) {
+
+       // if (!level.v.intersects(avatar.v)) {
+           
+       // } else if (input.toString() === 'false,true') w.jump = -15; else w.jump = 0; 
+
+        if (observ !== null ) {
+            //avatar.v.xdata.pos[0] = observ.lx;
+            //avatar.v.xdata.pos[1] = observ.ly;
+            observ = null;
+        } else {
+            w.jump += G;
+            w.py += w.jump;
+            avatar.v.xdata.pos[0] = w.speed*10;
+            avatar.v.xdata.pos[1] = w.py;
+        }
+
+       
+        w.px += w.speed;
+        w.speed += 0.1;
+
         level.v.xdata.pos[0] = -w.px;
         level.v.xdata.pos[1] = HEIGHT;
     }
+
     
-    function update(w, input) {
-        if (!level.v.intersects(avatar.v)) {
-            w.jump += G;
-        } else if (input.toString() === 'false,true') w.jump = -15; else w.jump = 0; 
-
-        w.py += w.jump;
-        w.px += w.speed;
-        w.speed += 0.1;
-       
-    }
-
-    function loop(w, input) {
-        update(w, input); 
-        render(w);
-    }
 
     var input = [false,false];
+    var observations = null;
 
     var scene = b().band([0,Number.MAX_VALUE])
             .add(level)
             .add(avatar)
-            .on(C.X_KUP, function(e){
+            .on(C.X_KUP, function(e){ 
                 input.push(false);
                 input.shift();
             })
+            .modify(function(){
+                level.v.collides(avatar.v, function(t,dt,sv,cv) {
+                    console.log(arguments);
+                   observations = cv;
+                });
+            })
             .on(C.X_KDOWN, function(e){
+                // let's accumulate input
                 input.push(e.key === 32);
                 input.shift();
             })
-            .modify(function(){loop(world, input);});
+            .modify(function(){loop(world, input, observations);});
 
     var player = createPlayer('gameCanvas', {'mode':C.M_DYNAMIC, 'anim':{"bgfill": { color: "#000" },'width':WIDTH, 'height':HEIGHT}});
     player.load(scene).play();
