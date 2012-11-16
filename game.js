@@ -13,56 +13,17 @@ function start() {
     var G = 0.8;
 
     var level = b().band([0, Number.MAX_VALUE])
-            .rect([0,0],[5200,100]);
-    
+            .rect([0,200],[200,20])
+            .reg([ -100, -10 ]);    
 
     var avatar = b().band([0,Number.MAX_VALUE])
-    .rect([0,0],[70,70]);
-
-    //(input.toString() === 'false,true')
-
-    var input = [false,false];
-
-    var scene = b().band([0,Number.MAX_VALUE])
-            .add(level)
-            .add(avatar)
-            .on(C.X_KUP, function(e){ 
-                input.push(false);
-                input.shift();
-            })
-            .modify(function(){
-                level.v.collides(avatar.v, function(t,dt,sv,cv) {
-                    console.log(arguments);
-                   observations = cv;
-                });
-            })
-            .on(C.X_KDOWN, function(e){
-                // let's accumulate input
-                input.push(e.key === 32);
-                input.shift();
-            })
-            .modify(function(){
-                loop(world, input, observations);
-            });
-
-    //var player = createPlayer('gameCanvas', {'mode':C.M_DYNAMIC, 'anim':{"bgfill": { color: "#000" },'width':WIDTH, 'height':HEIGHT}});
-    //player.load(scene).play();
-
-    var ctx = canv.getContext("2d");
+            .rect([0,0],[20,20])
+            .reg([ -10, -10 ]);
 
     var keyMap = {};
     keyMap[32] = false;
     keyMap[39] = false;
     keyMap[37] = false;
-
-    window.onkeydown = function(e) {
-        console.log(e.keyCode);
-        keyMap[e.keyCode] = true;
-    };
-
-    window.onkeyup = function(e) {
-        keyMap[e.keyCode] = false;
-    };
 
     function rect(x, y, w, h) {
         return [
@@ -73,12 +34,11 @@ function start() {
             ];
     }
 
-    function input2(kc) {
-        //if (keyMap[kc] === undefined) return false;
+    function input(kc) {
         return keyMap[kc];
     }
 
-    function create_world() {
+    var world = (function () {
 	var player_x = 0;
 	var player_y = 0;
         var player_vy = 0;
@@ -89,33 +49,40 @@ function start() {
             var time = new Date().getTime();
             var dt = time - current_time;
             current_time = time;
-            player_vx = (input2(39) ? 100 : 0) + (input2(37) ? -100 : 0);
+            player_vx = (input(39) ? 100 : 0) + (input(37) ? -100 : 0);
             player_vy += 9.8;	
             player_x += player_vx*(dt/1000);
             player_y += player_vy*(dt/1000);
             var coll_data = collide(rect(player_x, player_y, 20, 20), rect(0,200,200,20));
             if (coll_data) {
                 //console.log(coll_data);
-                player_vy = input2(32) ? -300 : 0;
+                player_vy = input(32) ? -300 : 0;
                 player_y += coll_data.overlap;
             } else {
                 //player_x = coll_data.contact.x;
             }
-//		...
-            render([[player_x, player_y,20,20],[0,200,200,20]]);
+            //		...
+            // Render
+            avatar.v.xdata.pos[0] = player_x;
+            avatar.v.xdata.pos[1] = player_y;
             return new_world;
-	    };
-
+	};
         return new_world(current_time);
-    }
-
-    function render(objs) {
-        ctx.clearRect(0,0,1000,1000);
-        objs.forEach(function(obj) {
-            ctx.fillRect.apply(ctx, obj);            
-        });
-    }
+    })();
     
-    world = create_world();
-    setInterval(function(){world = world();}, 20);
+    var scene = b().band([0,Number.MAX_VALUE])
+            .add(level)
+            .add(avatar)
+            .on(C.X_KUP, function(e){
+                keyMap[e.key] = false;
+            })
+            .on(C.X_KDOWN, function(e){
+                keyMap[e.key] = true;
+            })
+            .modify(function(){
+                world = world();
+            });
+
+    var player = createPlayer('canv', {'mode':C.M_DYNAMIC, 'anim':{"bgfill": { color: "#000" },'width':WIDTH, 'height':HEIGHT}});
+    player.load(scene).play();
 }
