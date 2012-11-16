@@ -41,7 +41,9 @@ function start() {
                 input.push(e.key === 32);
                 input.shift();
             })
-            .modify(function(){loop(world, input, observations);});
+            .modify(function(){
+                loop(world, input, observations);
+            });
 
     //var player = createPlayer('gameCanvas', {'mode':C.M_DYNAMIC, 'anim':{"bgfill": { color: "#000" },'width':WIDTH, 'height':HEIGHT}});
     //player.load(scene).play();
@@ -77,15 +79,16 @@ function start() {
     }
 
     function create_world() {
-	    var player_x = 0;
-	    var player_y = 0;
+	var player_x = 0;
+	var player_y = 0;
         var player_vy = 0;
         var player_vx = 0;
         var current_time = new Date().getTime();    
 //	var map = [...];
-        var new_world = function(time){
+        var new_world = function(){
+            var time = new Date().getTime();
             var dt = time - current_time;
-            current_time = new Date().getTime();
+            current_time = time;
             player_vx = (input2(39) ? 100 : 0) + (input2(37) ? -100 : 0);
             player_vy += 9.8;	
             player_x += player_vx*(dt/1000);
@@ -100,10 +103,10 @@ function start() {
             }
 //		...
             render([[player_x, player_y,20,20],[0,200,200,20]]);
-            webkitRequestAnimationFrame(new_world);
+            return new_world;
 	    };
 
-        new_world(current_time);
+        return new_world(current_time);
     }
 
     function render(objs) {
@@ -113,5 +116,6 @@ function start() {
         });
     }
     
-    create_world();
+    world = create_world();
+    setInterval(function(){world = world();}, 20);
 }
