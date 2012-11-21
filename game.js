@@ -213,7 +213,8 @@ function start() {
                 break;
             }
                 
-            player_vx = (input('LEFT') ? 100 : 0) + (input('RIGHT') ? -100 : 0);	
+            player_vx = (input('RIGHT') ? 100 : 0) + (input('LEFT') ? -100 : 0);	
+            player_vx = 100;
             // Render
             render("game_loop", [player_x, player_y]);
 
@@ -245,9 +246,9 @@ var world = new_game();
         switch(kc) {
             case 32:
             return 'SPACE';
-            case 39:
-            return 'LEFT';
             case 37:
+            return 'LEFT';
+            case 39:
             return 'RIGHT';
             default:
             return undefined;
