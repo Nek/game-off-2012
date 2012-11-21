@@ -31,6 +31,8 @@ function start() {
     var WIDTH = 640;
     var HEIGHT = 360;
     var G = 9.8;
+    var PLATFORMS = [[0,200,200,30], [240,200,200,30], [140,140,200,30]];
+    var HAZARDS = [[100,200-50,20,20]];
 
     /*
      * Create scene to hold it all together.
@@ -44,28 +46,30 @@ function start() {
      * It would evolve with every change to the game world.
      */
     var render = (function(scene) {
-        var level = b().band([0, Number.MAX_VALUE])
-                .add(
-                    b().band([0, Number.MAX_VALUE])
-                        .rect([0,200],[200,30])
-                        .reg([ -100, -15 ]))
-                .add(
-                    b().band([0, Number.MAX_VALUE])
-                        .rect([240,200],[200,30])
-                        .reg([ -100, -15 ]))
-                .add(
-                    b().band([0, Number.MAX_VALUE])
-                        .rect([140,140],[200,30])
-                        .reg([ -100, -15 ]));
+        var level = b().band([0, Number.MAX_VALUE]);
+        var i;
+        var r;
+        for (i = 0; i < PLATFORMS.length; i++) {
+            r = PLATFORMS[i];
+            level.add(b().band([0, Number.MAX_VALUE])
+                      .rect([r[0],r[1]],[r[2],r[3]])
+                      .reg([-r[2]/2, -r[3]/2]));
+        }
+        
+        for (i = 0; i < HAZARDS.length; i++) {
+            r = HAZARDS[i];
+            level.add(b().band([0, Number.MAX_VALUE])
+                      .rect([r[0],r[1]],[r[2],r[3]])
+                      .reg([-r[2]/2, -r[3]/2])
+                      .fill('red'));
+        }
 
         var avatar = b().band([0,Number.MAX_VALUE])
                 .rect([0,0],[20,20])
                 .reg([ -10, -10 ]);
         var game = b().band([0,Number.MAX_VALUE]);
-        scene
-        .add(game)
-            .add(level)
-            .add(avatar);
+        game.add(level).add(avatar);
+        scene.add(game);
 
         var over = b().band([0,Number.MAX_VALUE])
                 .text([WIDTH/2,HEIGHT/2], "GAME OVER",36).fill("red").nostroke();
@@ -75,14 +79,15 @@ function start() {
         var states = {
                 game_loop:{
                     enter: function(){
-                        game.enable();
+                        //game.enable();
                     },
                     inside: function(params){
                         avatar.v.xdata.pos[0] = params[0];
                         avatar.v.xdata.pos[1] = params[1];
+                        game.v.xdata.pos[0] = 200 - params[0];
                     },
                     exit: function(){
-                        game.disable();
+                        //game.disable();
                     }
                 },
                 over_loop:{
@@ -158,6 +163,10 @@ function start() {
             }
             return false;
         };
+
+        var platforms = PLATFORMS.map(function(el){return rect(el[0],el[1],el[2],el[3]);});
+        var hazards = HAZARDS.map(function(el){return rect(el[0],el[1],el[2],el[3]);});
+
         var game_loop = function(input, render){
             var time = new Date().getTime();
             var dt = time - current_time;
@@ -168,11 +177,13 @@ function start() {
             /*
              * Game over rule
              */
-
-            if (player_y > 360 + 50) return game_over;
+            
+            var hazard_coll = multicollide(rect(player_x, player_y, 20, 20), hazards); 
+            if (hazard_coll || player_y > 360 + 50) return game_over;
             
             // coll_data is false or {normal:{x,y}, overlap}
-            var coll_data = multicollide(rect(player_x, player_y, 20, 20), [rect(0,200,200,30), rect(240,200,200,30),rect(140,140,200,30)]);
+            var platf_coll = multicollide(rect(player_x, player_y, 20, 20), platforms);
+            
             var xd = player_vx > 0 ? 1 : (player_vx < 0 ? -1 : 0);
             var yd = player_vy > 0 ? 1 : (player_vy < 0 ? -1 : 0);
 
@@ -187,15 +198,15 @@ function start() {
 
             var y_coll = 'NONE';
             
-            if (coll_data && coll_data.normal.y === 1 && yd === -1) y_coll = 'HEAD BUMP';
-            if (coll_data && coll_data.normal.y === -1 && yd === 1) y_coll = 'LEG BUMP';
+            if (platf_coll && platf_coll.normal.y === 1 && yd === -1) y_coll = 'HEAD BUMP';
+            if (platf_coll && platf_coll.normal.y === -1 && yd === 1) y_coll = 'LEG BUMP';
             
 
             switch(y_coll) {
             case "LEG BUMP":
                 player_vy = input('SPACE') ? -300 : 0;
-                player_x -= coll_data.overlap * coll_data.normal.x;
-                player_y -= coll_data.overlap * coll_data.normal.y;
+                player_x -= platf_coll.overlap * platf_coll.normal.x;
+                player_y -= platf_coll.overlap * platf_coll.normal.y;
                 break;
             default:
                 player_vy += G;
