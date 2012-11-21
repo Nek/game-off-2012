@@ -32,7 +32,7 @@ function start() {
     var HEIGHT = 360;
     var G = 9.8;
     var PLATFORMS = [[0,200,200,30], [240,200,200,30], [140,140,200,30]];
-    var HAZARDS = [[100,200-50,20,20]];
+    var HAZARDS = [[400,200-50,20,20]];
 
     /*
      * Create scene to hold it all together.
