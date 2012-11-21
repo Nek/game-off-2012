@@ -13,15 +13,23 @@ function start() {
      * In the end it shall be built in animatron's player loop.
      */
     var input = (function() {
-        var keyMap = {};
-        keyMap[32] = false;
-        keyMap[39] = false;
-        keyMap[37] = false;
-        return function(kc, val) {
-            if (val !== undefined) keyMap[kc] = val;
-            return keyMap[kc];
+        var eventMap = {};
+        eventMap.SPACE = false;
+        eventMap.LEFT = false;
+        eventMap.RIGHT = false;
+        eventMap.CLICK = false;
+        return function(name, val) {
+            if (val !== undefined) eventMap[name] = val;
+            return eventMap[name];
         };
     })();
+
+    /*
+     * Some constants
+     */
+
+    var WIDTH = 640;
+    var HEIGHT = 360;
 
     /*
      * Create scene to hold it all together.
@@ -36,19 +44,76 @@ function start() {
      */
     var render = (function(scene) {
         var level = b().band([0, Number.MAX_VALUE])
-                .rect([0,200],[200,20])
-                .reg([ -100, -10 ]);
+                .add(
+                    b().band([0, Number.MAX_VALUE])
+                        .rect([0,200],[200,30])
+                        .reg([ -100, -15 ]))
+                .add(
+                    b().band([0, Number.MAX_VALUE])
+                        .rect([240,200],[200,30])
+                        .reg([ -100, -15 ]))
+                .add(
+                    b().band([0, Number.MAX_VALUE])
+                        .rect([140,140],[200,30])
+                        .reg([ -100, -15 ]));
 
         var avatar = b().band([0,Number.MAX_VALUE])
                 .rect([0,0],[20,20])
                 .reg([ -10, -10 ]);
+        var game = b().band([0,Number.MAX_VALUE]);
         scene
+        .add(game)
             .add(level)
             .add(avatar);
 
-        return function(x,y){
-            avatar.v.xdata.pos[0] = x;
-            avatar.v.xdata.pos[1] = y;
+        var over = b().band([0,Number.MAX_VALUE])
+                .text([WIDTH/2,HEIGHT/2], "GAME OVER",36).fill("red").nostroke();
+        scene.add(over);
+        over.disable();
+
+        var states = {
+                game_loop:{
+                    enter: function(){
+                        game.enable();
+                    },
+                    inside: function(params){
+                        avatar.v.xdata.pos[0] = params[0];
+                        avatar.v.xdata.pos[1] = params[1];
+                    },
+                    exit: function(){
+                        game.disable();
+                    }
+                },
+                over_loop:{
+                    enter: function() {
+                        over.enable();
+                    },
+                    exit: function() {
+                        over.disable();
+                    }
+                }
+            };
+        
+        var prev = '';
+
+        return function(s, params){
+            /*
+             * enter_state(s, function("game", function(){}))
+             * in_state
+             * exit_state
+             */
+            var run = function(f) {
+                if (f) f();
+            };
+            try {
+            if (s !== prev) {
+                states[prev].exit();
+                states[s].enter();
+            } else {
+                states[s].inside(params);
+            }}
+            catch(e){}
+            prev = s;
         };
     })(scene);
 
@@ -63,7 +128,7 @@ function start() {
      * It takes player's position and renders it on screen.
      * We don't care about the function's returned value.
      */
-    var world = (function () {
+    var new_game = function () {
         var G = 9.8;
 
 	var player_x = 0;
@@ -83,26 +148,76 @@ function start() {
                 [x, y+h]
             ];
         };
-    
-        return function(input, render){
+
+        var multicollide = function(r, rs) {
+            var i = 0;
+            var l = rs.length;
+            for (i; i < l; i ++)
+            {
+                var res = collide(r, rs[i]);
+                if (res) return res;
+            }
+            return false;
+        };
+        var game_loop = function(input, render){
             var time = new Date().getTime();
             var dt = time - current_time;
             current_time = time;
-            player_vx = (input(39) ? 100 : 0) + (input(37) ? -100 : 0);
-            player_vy += G;	
             player_x += player_vx*(dt/1000);
             player_y += player_vy*(dt/1000);
-            var coll_data = collide(rect(player_x, player_y, 20, 20), rect(0,200,200,20));
-            // Use collision data and input to decide what happens next.
-            if (coll_data) {
-                player_vy = input(32) ? -300 : 0;
-                player_y += coll_data.overlap;
-            } else {
+
+            /*
+             * Game over rule
+             */
+
+            if (player_y > 360 + 50) return game_over;
+            
+            // coll_data is false or {normal:{x,y}, overlap}
+            var coll_data = multicollide(rect(player_x, player_y, 20, 20), [rect(0,200,200,30), rect(240,200,200,30),rect(140,140,200,30)]);
+            var xd = player_vx > 0 ? 1 : (player_vx < 0 ? -1 : 0);
+            var yd = player_vy > 0 ? 1 : (player_vy < 0 ? -1 : 0);
+
+            ///////////////////////
+            //  motion           //
+            //  -1 up            //
+            //  1 down           //
+            //  collision vector //
+            //  -1 legs          //
+            //  1 head           //
+            ///////////////////////
+
+            var y_coll = 'NONE';
+            
+            if (coll_data && coll_data.normal.y === 1 && yd === -1) y_coll = 'HEAD BUMP';
+            if (coll_data && coll_data.normal.y === -1 && yd === 1) y_coll = 'LEG BUMP';
+            
+
+            switch(y_coll) {
+            case "LEG BUMP":
+                player_vy = input('SPACE') ? -300 : 0;
+                player_x -= coll_data.overlap * coll_data.normal.x;
+                player_y -= coll_data.overlap * coll_data.normal.y;
+                break;
+            default:
+                player_vy += G;
+                break;
             }
+                
+            player_vx = (input('LEFT') ? 100 : 0) + (input('RIGHT') ? -100 : 0);	
             // Render
-            render(player_x, player_y);
+            render("game_loop", [player_x, player_y]);
+
+            return game_loop;
 	};
-    })();
+        var game_over = function(input, render){
+            if (input("LMB")) return new_game();
+            render('over_loop');
+            return game_over;
+        };
+        return game_loop;
+    };
+
+var world = new_game();
     
     /*
      * This glues everything together.
@@ -116,17 +231,35 @@ function start() {
      *          // true if pressed in the current player's cycle
      *      })
      */
+    var codeToName = function(kc) {
+        switch(kc) {
+            case 32:
+            return 'SPACE';
+            case 39:
+            return 'LEFT';
+            case 37:
+            return 'RIGHT';
+            default:
+            return undefined;
+        }
+    };
     scene
         .on(C.X_KUP, function(e){
-            input(e.key, false);
+            input(codeToName(e.key), false);
         })
         .on(C.X_KDOWN, function(e){
-            input(e.key, true);
+            input(codeToName(e.key), true);
+        })
+        .on(C.X_MDOWN, function(e) {
+            input('LMB', true);
+        })
+        .on(C.X_MUP,function(e) {
+            input('LMB', false);
         })
         .modify(function(){
-            world(input, render);
+            world = world(input, render);
         });
 
-    var player = createPlayer('canv', {'mode':C.M_DYNAMIC, 'anim':{"bgfill": { color: "#000" },'width':640, 'height':360}});
+    var player = createPlayer('canv', {'mode':C.M_DYNAMIC, 'anim':{"bgfill": { color: "#000" },'width':WIDTH, 'height':HEIGHT}});
     player.load(scene).play();
 }
