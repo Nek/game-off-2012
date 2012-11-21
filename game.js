@@ -30,6 +30,7 @@ function start() {
 
     var WIDTH = 640;
     var HEIGHT = 360;
+    var G = 9.8;
 
     /*
      * Create scene to hold it all together.
@@ -129,8 +130,6 @@ function start() {
      * We don't care about the function's returned value.
      */
     var new_game = function () {
-        var G = 9.8;
-
 	var player_x = 0;
 	var player_y = 0;
         var player_vy = 0;
