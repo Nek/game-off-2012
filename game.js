@@ -28,22 +28,24 @@ function start() {
      * Some constants
      */
 
-    var WIDTH = 640;
-    var HEIGHT = 360;
+    var WIDTH = 320;
+    var HEIGHT = 180;
     var G = 9.8;
+    var UNIT = 16;
+    var PLAYER_SIZE = UNIT*0.75;
     //var PLATFORMS = [[0,200,200,30], [240,200,200,30], [140,140,200,30]];
     
-    var PLATFORMS = LEVEL.commits.map(function(el){ return [el.time*30, el.space*30 + 150,30,30,el.message];});
+    var TILES = LEVEL.commits.map(function(el){ return [el.time*UNIT, el.space*UNIT + 160/2,UNIT,UNIT,el.message];});
 
-    PLATFORMS = PLATFORMS.reduce(function(res,curr,i,arr){
+    PLATFORMS = TILES.reduce(function(res,curr,i,arr){
         var last = res[res.length-1];
         if (curr[0] === last[0]+last[2] && curr[1] === last[1]) {
-            last[2] += 30;
+            last[2] += UNIT;
             return res;
         } 
         res.push(curr);
         return res;
-    }, [PLATFORMS[0]]);
+    }, [TILES[0]]);
 
     var HAZARDS = [];//[[400,200-50,20,20]];
 
@@ -62,11 +64,17 @@ function start() {
         var level = b().band([0, Number.MAX_VALUE]);
         var i;
         var r;
-        for (i = 0; i < PLATFORMS.length; i++) {
-            r = PLATFORMS[i];
+        for (i = 0; i < TILES.length; i++) {
+            r = TILES[i];
+            ///////////////////////////////////////////////
+            // level.add(b().band([0, Number.MAX_VALUE]) //
+            //           .rect([r[0],r[1]],[r[2],r[3]])  //
+            //           .reg([-r[2]/2, -r[3]/2])        //
+            //           .nostroke());                   //
+            ///////////////////////////////////////////////
             level.add(b().band([0, Number.MAX_VALUE])
-                      .rect([r[0],r[1]],[r[2],r[3]])
-                      .reg([-r[2]/2, -r[3]/2]));
+                      .image([r[0],r[1]],"tile_bricks.png")
+                      .nostroke());
 //                .add(b().band([0, Number.MAX_VALUE]).text([r[0], r[1]], r[4], 24).nostroke().fill('red'));
         }
         
@@ -79,8 +87,8 @@ function start() {
         }
 
         var avatar = b().band([0,Number.MAX_VALUE])
-                .rect([0,0],[20,20])
-                .reg([ -10, -10 ]);
+                .rect([0,0],[PLAYER_SIZE,PLAYER_SIZE])
+                .reg([ -PLAYER_SIZE/2, -PLAYER_SIZE/2 ]);
         var game = b().band([0,Number.MAX_VALUE]);
         game.add(level).add(avatar);
         scene.add(game);
@@ -98,7 +106,7 @@ function start() {
                     inside: function(params){
                         avatar.v.xdata.pos[0] = params[0];
                         avatar.v.xdata.pos[1] = params[1];
-                        game.v.xdata.pos[0] = 200 - params[0] - params[2]/10;
+                        game.v.xdata.pos[0] = 100 - params[0] - params[2]/10;
                     },
                     exit: function(){
                         //game.disable();
@@ -152,9 +160,9 @@ function start() {
 	var player_x = 0;
 	var player_y = 0;
         var player_vy = 0;
-        var player_vx = 100;
+        var player_vx = 50;
         
-        var player_ax = 1;
+        var player_ax = 0.5;
         
         var current_time = new Date().getTime();
 
@@ -197,12 +205,12 @@ function start() {
              * Game over rule
              */
             
-            var hazard_coll = multicollide(rect(player_x, player_y, 20, 20), hazards); 
+            var hazard_coll = multicollide(rect(player_x, player_y, PLAYER_SIZE, PLAYER_SIZE), hazards); 
             if (hazard_coll || player_y > 360 + 50) return game_over;
             
             //coll_data is false or {normal:{x,y}, overlap}
             //console.log(platforms.filter(function(el){ return el[0] > player_x + 30 && el[0] < player_x + 600; }));
-            var platf_coll = multicollide(rect(player_x, player_y, 20, 20), platforms);            
+            var platf_coll = multicollide(rect(player_x, player_y, PLAYER_SIZE, PLAYER_SIZE), platforms);            
             var xd = player_vx > 0 ? 1 : (player_vx < 0 ? -1 : 0);
             var yd = player_vy > 0 ? 1 : (player_vy < 0 ? -1 : 0);
 
@@ -289,6 +297,12 @@ var world = new_game();
             world = world(input, render);
         });
 
-    var player = createPlayer('canv', {'mode':C.M_DYNAMIC, 'anim':{"bgfill": { color: "#000" },'width':WIDTH, 'height':HEIGHT}});
+    var player = createPlayer('canv', {'zoom':2.0,'mode':C.M_DYNAMIC, 'anim':{"bgfill": { color: "#597dce" }}});
     player.load(scene).play();
+    
+    /*
+     * Smoothed image fix
+     */
+
+    document.getElementById('canv').getContext('2d').webkitImageSmoothingEnabled = false;
 }
