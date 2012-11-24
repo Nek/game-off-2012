@@ -31,8 +31,21 @@ function start() {
     var WIDTH = 640;
     var HEIGHT = 360;
     var G = 9.8;
-    var PLATFORMS = [[0,200,200,30], [240,200,200,30], [140,140,200,30]];
-    var HAZARDS = [[400,200-50,20,20]];
+    //var PLATFORMS = [[0,200,200,30], [240,200,200,30], [140,140,200,30]];
+    
+    var PLATFORMS = LEVEL.commits.map(function(el){ return [el.time*30, el.space*30 + 150,30,30,el.message];});
+
+    PLATFORMS = PLATFORMS.reduce(function(res,curr,i,arr){
+        var last = res[res.length-1];
+        if (curr[0] === last[0]+last[2] && curr[1] === last[1]) {
+            last[2] += 30;
+            return res;
+        } 
+        res.push(curr);
+        return res;
+    }, [PLATFORMS[0]]);
+
+    var HAZARDS = [];//[[400,200-50,20,20]];
 
     /*
      * Create scene to hold it all together.
@@ -54,6 +67,7 @@ function start() {
             level.add(b().band([0, Number.MAX_VALUE])
                       .rect([r[0],r[1]],[r[2],r[3]])
                       .reg([-r[2]/2, -r[3]/2]));
+//                .add(b().band([0, Number.MAX_VALUE]).text([r[0], r[1]], r[4], 24).nostroke().fill('red'));
         }
         
         for (i = 0; i < HAZARDS.length; i++) {
@@ -84,7 +98,7 @@ function start() {
                     inside: function(params){
                         avatar.v.xdata.pos[0] = params[0];
                         avatar.v.xdata.pos[1] = params[1];
-                        game.v.xdata.pos[0] = 200 - params[0];
+                        game.v.xdata.pos[0] = 200 - params[0] - params[2]/10;
                     },
                     exit: function(){
                         //game.disable();
@@ -138,7 +152,10 @@ function start() {
 	var player_x = 0;
 	var player_y = 0;
         var player_vy = 0;
-        var player_vx = 0;
+        var player_vx = 100;
+        
+        var player_ax = 1;
+        
         var current_time = new Date().getTime();
 
         /*
@@ -164,7 +181,9 @@ function start() {
             return false;
         };
 
-        var platforms = PLATFORMS.map(function(el){return rect(el[0],el[1],el[2],el[3]);});
+
+        var platforms = PLATFORMS.map(function(el ,i ,arr){ return rect(el[0],el[1],el[2],el[3]);});
+
         var hazards = HAZARDS.map(function(el){return rect(el[0],el[1],el[2],el[3]);});
 
         var game_loop = function(input, render){
@@ -181,9 +200,9 @@ function start() {
             var hazard_coll = multicollide(rect(player_x, player_y, 20, 20), hazards); 
             if (hazard_coll || player_y > 360 + 50) return game_over;
             
-            // coll_data is false or {normal:{x,y}, overlap}
-            var platf_coll = multicollide(rect(player_x, player_y, 20, 20), platforms);
-            
+            //coll_data is false or {normal:{x,y}, overlap}
+            //console.log(platforms.filter(function(el){ return el[0] > player_x + 30 && el[0] < player_x + 600; }));
+            var platf_coll = multicollide(rect(player_x, player_y, 20, 20), platforms);            
             var xd = player_vx > 0 ? 1 : (player_vx < 0 ? -1 : 0);
             var yd = player_vy > 0 ? 1 : (player_vy < 0 ? -1 : 0);
 
@@ -200,7 +219,6 @@ function start() {
             
             if (platf_coll && platf_coll.normal.y === 1 && yd === -1) y_coll = 'HEAD BUMP';
             if (platf_coll && platf_coll.normal.y === -1 && yd === 1) y_coll = 'LEG BUMP';
-            
 
             switch(y_coll) {
             case "LEG BUMP":
@@ -212,11 +230,11 @@ function start() {
                 player_vy += G;
                 break;
             }
-                
-            player_vx = (input('RIGHT') ? 100 : 0) + (input('LEFT') ? -100 : 0);	
-            player_vx = 100;
+
+            player_vx += player_ax;
+//            player_vx = (input('RIGHT') ? 100 : 0) + (input('LEFT') ? -100 : 0);	
             // Render
-            render("game_loop", [player_x, player_y]);
+            render("game_loop", [player_x, player_y, player_vx]);
 
             return game_loop;
 	};
