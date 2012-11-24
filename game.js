@@ -30,7 +30,7 @@ function start() {
 
     var WIDTH = 320;
     var HEIGHT = 180;
-    var G = 9.8;
+    var G = 200;
     var UNIT = 16;
     var PLAYER_SIZE = UNIT*0.75;
     //var PLATFORMS = [[0,200,200,30], [240,200,200,30], [140,140,200,30]];
@@ -163,7 +163,9 @@ function start() {
         var player_vx = 50;
         
         var player_ax = 0.5;
-        
+        var fuel = 100;
+        var on_legs = false;
+
         var current_time = new Date().getTime();
 
         /*
@@ -189,17 +191,25 @@ function start() {
             return false;
         };
 
-
         var platforms = PLATFORMS.map(function(el ,i ,arr){ return rect(el[0],el[1],el[2],el[3]);});
 
         var hazards = HAZARDS.map(function(el){return rect(el[0],el[1],el[2],el[3]);});
 
         var game_loop = function(input, render){
+
+            /*
+             * Calculate delta time
+             */
             var time = new Date().getTime();
-            var dt = time - current_time;
+            var dt = (time - current_time) / 1000;
             current_time = time;
-            player_x += player_vx*(dt/1000);
-            player_y += player_vy*(dt/1000);
+            
+            /*
+             * Update position using delta time
+             */
+
+            player_x += player_vx * dt;
+            player_y += player_vy * dt;
 
             /*
              * Game over rule
@@ -208,9 +218,7 @@ function start() {
             var hazard_coll = multicollide(rect(player_x, player_y, PLAYER_SIZE, PLAYER_SIZE), hazards); 
             if (hazard_coll || player_y > 360 + 50) return game_over;
             
-            //coll_data is false or {normal:{x,y}, overlap}
-            //console.log(platforms.filter(function(el){ return el[0] > player_x + 30 && el[0] < player_x + 600; }));
-            var platf_coll = multicollide(rect(player_x, player_y, PLAYER_SIZE, PLAYER_SIZE), platforms);            
+            var platf_coll = multicollide(rect(player_x, player_y, PLAYER_SIZE, PLAYER_SIZE), platforms);
             var xd = player_vx > 0 ? 1 : (player_vx < 0 ? -1 : 0);
             var yd = player_vy > 0 ? 1 : (player_vy < 0 ? -1 : 0);
 
@@ -225,23 +233,50 @@ function start() {
 
             var y_coll = 'NONE';
             
-            if (platf_coll && platf_coll.normal.y === 1 && yd === -1) y_coll = 'HEAD BUMP';
-            if (platf_coll && platf_coll.normal.y === -1 && yd === 1) y_coll = 'LEG BUMP';
+            if ( platf_coll && platf_coll.normal.y === 1 && yd === -1 ) y_coll = 'HEAD BUMP';
+            if ( platf_coll && platf_coll.normal.y === -1 && yd === 1 ) y_coll = 'LEG BUMP';
 
-            switch(y_coll) {
-            case "LEG BUMP":
-                player_vy = input('SPACE') ? -300 : 0;
+            /*
+             * Don't let player's legs fall through floor, but let it go through for everything else.
+             */
+            if (y_coll === 'LEG BUMP') {
                 player_x -= platf_coll.overlap * platf_coll.normal.x;
                 player_y -= platf_coll.overlap * platf_coll.normal.y;
-                break;
-            default:
-                player_vy += G;
-                break;
             }
+            
+            var thrust = function() {
+                player_vy += G*dt / 5;
+                fuel -= 100 * dt;
+            };
+            
+            var jump = function() {
+                player_vy = -120;
+            };
 
+            var stop = function() {
+                fuel = 100;
+                player_vy = G * dt;
+            };
+            var fall = function(){
+                fuel = 0;
+                player_vy += G * dt;
+            };
+
+            /*
+             * Calculate player's y velocity
+             */
+            
+            if ( y_coll === 'LEG BUMP' )
+            {
+                if ( input('SPACE') ) jump();
+                else stop();
+            } else {
+                if ( input('SPACE') && fuel > 0 ) thrust();
+                else fall();
+            }
+       
             player_vx += player_ax;
-//            player_vx = (input('RIGHT') ? 100 : 0) + (input('LEFT') ? -100 : 0);	
-            // Render
+          
             render("game_loop", [player_x, player_y, player_vx]);
 
             return game_loop;
