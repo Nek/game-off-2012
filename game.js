@@ -104,25 +104,37 @@ function start() {
         scene.add(over_screen);
         over_screen.disable();
 
+        var won_screen = b().band([0,Number.MAX_VALUE])
+                .text([WIDTH/2,HEIGHT/2], "YOU HAVE WON",36).fill("green").nostroke();
+        scene.add(won_screen);
+        won_screen.disable();
+
         var states = {
-                game_loop: {
-                    inside: function(player_x, player_y, scores){
-                        avatar.v.xdata.pos[0] = player_x;
-                        avatar.v.xdata.pos[1] = player_y;
-                        view.v.xdata.pos[0] = 100 - player_x;
-                        scores_meter.v.xdata.text.lines = Math.floor(scores).toString();
-                    }
-                },
-                over_loop: {
-                    enter: function() {
-                        console.log("over screen");
-                        over_screen.enable();
-                    },
-                    exit: function() {
-                        over_screen.disable();
-                    }
+            game_loop: {
+                inside: function(player_x, player_y, scores){
+                    avatar.v.xdata.pos[0] = player_x;
+                    avatar.v.xdata.pos[1] = player_y;
+                    view.v.xdata.pos[0] = 100 - player_x;
+                    scores_meter.v.xdata.text.lines = Math.floor(scores).toString();
                 }
-            };
+            },
+            over_loop: {
+                enter: function() {
+                    over_screen.enable();
+                },
+                exit: function() {
+                    over_screen.disable();
+                }
+            },
+            won_loop: {
+                enter: function() {
+                    won_screen.enable();
+                },
+                exit: function(){
+                    won_screen.disable();
+                }
+            }
+        };
         
         var prev = '';
 
@@ -207,11 +219,17 @@ function start() {
             player_y += player_vy * dt;
 
             /*
+             * Game won rule
+             */
+
+            if (player_x > TILES[TILES.length - 1][0] + TILES[TILES.length - 1][2] + 300) return won_loop;
+
+            /*
              * Game over rule
              */
             
             var hazard_coll = multicollide(rect(player_x, player_y, PLAYER_SIZE, PLAYER_SIZE), hazards); 
-            if (hazard_coll || player_y > 360 + 50) return game_over;
+            if (hazard_coll || player_y > 360 + 50) return over_loop;
             
             var platf_coll = multicollide(rect(player_x, player_y, PLAYER_SIZE, PLAYER_SIZE), platforms);
             var xd = player_vx > 0 ? 1 : (player_vx < 0 ? -1 : 0);
@@ -301,10 +319,15 @@ function start() {
 
             return game_loop;
 	};
-        var game_over = function(input, render){
+        var over_loop = function(input, render){
             if (input("SPACE")) return new_game();
             render("over_loop");
-            return game_over;
+            return over_loop;
+        };
+        var won_loop = function(input, render){
+            if (input("SPACE")) return new_game();
+            render("won_loop");
+            return won_loop;
         };
         return game_loop;
     };
