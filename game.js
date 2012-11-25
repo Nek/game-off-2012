@@ -39,21 +39,10 @@ function start() {
     var G = 400;
     var UNIT = 16;
     var PLAYER_SIZE = UNIT*0.75;
-    //var PLATFORMS = [[0,200,200,30], [240,200,200,30], [140,140,200,30]];
     
-    var TILES = LEVEL.commits.map(function(el){ return [el.time*UNIT, el.space*UNIT + 160/2,UNIT,UNIT,el.message];});
+    var TILES = [];
 
-    PLATFORMS = TILES.reduce(function(res,curr,i,arr){
-        var last = res[res.length-1];
-        if (curr[0] === last[0]+last[2] && curr[1] === last[1]) {
-            last[2] += UNIT;
-            return res;
-        } 
-        res.push(curr);
-        return res;
-    }, [TILES[0]]);
-
-    var HAZARDS = [];//[[400,200-50,20,20]];
+    var HAZARDS = [];//[[400,200-50,20,20]];     
 
     /*
      * Create scene to hold it all together.
@@ -68,22 +57,6 @@ function start() {
      */
     var render = (function(scene) {
         var level = b().band([0, Number.MAX_VALUE]);
-        var i;
-        var r;
-        for (i = 0; i < TILES.length; i++) {
-            r = TILES[i];
-            level.add(b().band([0, Number.MAX_VALUE])
-                      .image([r[0],r[1]],"tile_bricks.png")
-                      .nostroke());
-        }
-        
-        for (i = 0; i < HAZARDS.length; i++) {
-            r = HAZARDS[i];
-            level.add(b().band([0, Number.MAX_VALUE])
-                      .rect([r[0],r[1]],[r[2],r[3]])
-                      .reg([-r[2]/2, -r[3]/2])
-                      .fill('red'));
-        }
 
         var avatar = b().band([0,Number.MAX_VALUE])
                 .rect([0,0],[PLAYER_SIZE,PLAYER_SIZE])
@@ -96,8 +69,9 @@ function start() {
         var game_screen = b().band([0,Number.MAX_VALUE]);        
         game_screen
             .add(view)
-            .add(scores_meter);
+           .add(scores_meter);
         scene.add(game_screen);
+        game_screen.disable();
 
         var over_screen = b().band([0,Number.MAX_VALUE])
                 .text([WIDTH/2,HEIGHT/2], "GAME OVER",36).fill("red").nostroke();
@@ -109,8 +83,41 @@ function start() {
         scene.add(won_screen);
         won_screen.disable();
 
+        var load_screen =  b().band([0,Number.MAX_VALUE])
+                .text([WIDTH/2,HEIGHT/2], "LOADING",36).fill("green").nostroke();
+        scene.add(load_screen);
+
         var states = {
+            load_loop: {
+                inside: function() {
+                    console.log("loading level");
+                },
+                exit: function() {
+                    load_screen.disable();
+                }  
+            },
             game_loop: {
+                init: function() {
+                    var i;
+                    var r;
+                    for (i = 0; i < TILES.length; i++) {
+                        r = TILES[i];
+                        level.add(b().band([0, Number.MAX_VALUE])
+                                  .image([r[0],r[1]],"tile_bricks.png")
+                                  .nostroke());
+                    }
+                    for (i = 0; i < HAZARDS.length; i++) {
+                        r = HAZARDS[i];
+                        level.add(b().band([0, Number.MAX_VALUE])
+                                  .rect([r[0],r[1]],[r[2],r[3]])
+                                  .reg([-r[2]/2, -r[3]/2])
+                                  .fill('red'));
+                    }
+                    
+                },
+                enter: function() {
+                    game_screen.enable();
+                },
                 inside: function(player_x, player_y, scores){
                     avatar.v.xdata.pos[0] = player_x;
                     avatar.v.xdata.pos[1] = player_y;
@@ -141,7 +148,13 @@ function start() {
         return function(s, params){
             if (s !== prev) {
                 if (states[prev] && states[prev].exit) states[prev].exit();
-                if (states[s] && states[s].enter) states[s].enter();
+                if (states[s] && states[s].enter) {
+                    if (states[s].dirty === undefined) {
+                        if (states[s].init) states[s].init();
+                        states[s].dirty = true;
+                    }
+                    states[s].enter();
+                }
             } else {
                 if (states[s] && states[s].inside) states[s].inside.apply(this,params);
             }
@@ -197,6 +210,17 @@ function start() {
             }
             return false;
         };
+
+        var PLATFORMS = TILES.reduce(function(res,curr,i,arr){
+            var last = res[res.length-1];
+            if (curr[0] === last[0]+last[2] && curr[1] === last[1]) {
+                last[2] += UNIT;
+                return res;
+            } 
+            res.push(curr);
+            return res;
+        }, [TILES[0]]);
+
 
         var platforms = PLATFORMS.map(function(el ,i ,arr){ return rect(el[0],el[1],el[2],el[3]);});
 
@@ -332,7 +356,25 @@ function start() {
         return game_loop;
     };
 
-var world = new_game();
+var init_loop = function() {
+    window.level_loaded = function(d) {
+        TILES = d.value.items.map(function(el){ return [el.time*UNIT, el.space*UNIT + 160/2,UNIT,UNIT,el.message];});
+        console.log(TILES);
+    };
+    var head = document.getElementsByTagName("head").item(0);
+    var script = document.createElement ("script");
+    script.src = "http://pipes.yahoo.com/pipes/pipe.run?_id=b92bca9b01e8338a3b7145a861e76a30&_render=json&name=Animatron&repo=player&_callback=level_loaded";
+    head.appendChild (script);
+    return load_loop;
+};
+
+var load_loop = function() {
+    render("load_loop");
+    if (TILES.length === 0) return load_loop;
+    return new_game();
+};
+
+var world = init_loop;
     
     /*
      * This glues everything together.
