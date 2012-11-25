@@ -14,11 +14,17 @@ function start() {
      */
     var input = (function() {
         var eventMap = {};
-        eventMap.SPACE = false;
-        eventMap.LEFT = false;
-        eventMap.RIGHT = false;
-        eventMap.CLICK = false;
+        var reset = function() {
+            eventMap.SPACE = false;
+            eventMap.LEFT = false;
+            eventMap.RIGHT = false;
+            eventMap.CLICK = false;
+        };
         return function(name, val) {
+            if (name === true) {
+                reset();
+                return undefined;
+            }
             if (val !== undefined) eventMap[name] = val;
             return eventMap[name];
         };
@@ -30,7 +36,7 @@ function start() {
 
     var WIDTH = 320;
     var HEIGHT = 180;
-    var G = 200;
+    var G = 400;
     var UNIT = 16;
     var PLAYER_SIZE = UNIT*0.75;
     //var PLATFORMS = [[0,200,200,30], [240,200,200,30], [140,140,200,30]];
@@ -66,16 +72,9 @@ function start() {
         var r;
         for (i = 0; i < TILES.length; i++) {
             r = TILES[i];
-            ///////////////////////////////////////////////
-            // level.add(b().band([0, Number.MAX_VALUE]) //
-            //           .rect([r[0],r[1]],[r[2],r[3]])  //
-            //           .reg([-r[2]/2, -r[3]/2])        //
-            //           .nostroke());                   //
-            ///////////////////////////////////////////////
             level.add(b().band([0, Number.MAX_VALUE])
                       .image([r[0],r[1]],"tile_bricks.png")
                       .nostroke());
-//                .add(b().band([0, Number.MAX_VALUE]).text([r[0], r[1]], r[4], 24).nostroke().fill('red'));
         }
         
         for (i = 0; i < HAZARDS.length; i++) {
@@ -89,35 +88,38 @@ function start() {
         var avatar = b().band([0,Number.MAX_VALUE])
                 .rect([0,0],[PLAYER_SIZE,PLAYER_SIZE])
                 .reg([ -PLAYER_SIZE/2, -PLAYER_SIZE/2 ]);
-        var game = b().band([0,Number.MAX_VALUE]);
-        game.add(level).add(avatar);
-        scene.add(game);
+        
+        var view = b().band([0,Number.MAX_VALUE]);
+        view.add(level).add(avatar);
+        var scores_meter = b().band([0,Number.MAX_VALUE])
+                .text([20,10],"1000",14).nostroke(); 
+        var game_screen = b().band([0,Number.MAX_VALUE]);        
+        game_screen
+            .add(view)
+            .add(scores_meter);
+        scene.add(game_screen);
 
-        var over = b().band([0,Number.MAX_VALUE])
+        var over_screen = b().band([0,Number.MAX_VALUE])
                 .text([WIDTH/2,HEIGHT/2], "GAME OVER",36).fill("red").nostroke();
-        scene.add(over);
-        over.disable();
+        scene.add(over_screen);
+        over_screen.disable();
 
         var states = {
-                game_loop:{
-                    enter: function(){
-                        //game.enable();
-                    },
-                    inside: function(params){
-                        avatar.v.xdata.pos[0] = params[0];
-                        avatar.v.xdata.pos[1] = params[1];
-                        game.v.xdata.pos[0] = 100 - params[0] - params[2]/10;
-                    },
-                    exit: function(){
-                        //game.disable();
+                game_loop: {
+                    inside: function(player_x, player_y, scores){
+                        avatar.v.xdata.pos[0] = player_x;
+                        avatar.v.xdata.pos[1] = player_y;
+                        view.v.xdata.pos[0] = 100 - player_x;
+                        scores_meter.v.xdata.text.lines = Math.floor(scores).toString();
                     }
                 },
-                over_loop:{
+                over_loop: {
                     enter: function() {
-                        over.enable();
+                        console.log("over screen");
+                        over_screen.enable();
                     },
                     exit: function() {
-                        over.disable();
+                        over_screen.disable();
                     }
                 }
             };
@@ -125,22 +127,12 @@ function start() {
         var prev = '';
 
         return function(s, params){
-            /*
-             * enter_state(s, function("game", function(){}))
-             * in_state
-             * exit_state
-             */
-            var run = function(f) {
-                if (f) f();
-            };
-            try {
             if (s !== prev) {
-                states[prev].exit();
-                states[s].enter();
+                if (states[prev] && states[prev].exit) states[prev].exit();
+                if (states[s] && states[s].enter) states[s].enter();
             } else {
-                states[s].inside(params);
-            }}
-            catch(e){}
+                if (states[s] && states[s].inside) states[s].inside.apply(this,params);
+            }
             prev = s;
         };
     })(scene);
@@ -160,9 +152,12 @@ function start() {
 	var player_x = 0;
 	var player_y = 0;
         var player_vy = 0;
-        var player_vx = 50;
+        var player_vx = 0;
+
+        var commits = 0;
+        var scores = 0;
         
-        var player_ax = 0.5;
+        var player_ax = 40;
         var fuel = 100;
         var on_legs = false;
 
@@ -247,20 +242,40 @@ function start() {
             var thrust = function() {
                 player_vy += G*dt / 5;
                 fuel -= 100 * dt;
+                player_vx -= player_ax * dt / 5;
+                if (player_vx < 0) player_vx = 0;
+                prev = thrust;
             };
             
             var jump = function() {
+                fuel = 100;
                 player_vy = -120;
+                prev = jump;
             };
 
-            var stop = function() {
+            var run = function() {
                 fuel = 100;
                 player_vy = G * dt;
+                player_vx += player_ax * dt;
+                prev = run;
             };
+
             var fall = function(){
                 fuel = 0;
                 player_vy += G * dt;
+                player_vx -= player_ax * dt / 5;
+                if (player_vx < 0) player_vx = 0;
+                prev = fall;
             };
+
+            var drop = function() {
+                player_vy = 200;
+                player_vx -= player_ax * dt / 5;
+                if (player_vx < 0) player_vx = 0;
+                prev = drop;
+            };
+
+            var prev = null;
 
             /*
              * Calculate player's y velocity
@@ -269,21 +284,26 @@ function start() {
             if ( y_coll === 'LEG BUMP' )
             {
                 if ( input('SPACE') ) jump();
-                else stop();
+                else run();
             } else {
                 if ( input('SPACE') && fuel > 0 ) thrust();
+                else if (input('SPACE')) drop();
                 else fall();
             }
-       
-            player_vx += player_ax;
-          
-            render("game_loop", [player_x, player_y, player_vx]);
+            
+            var new_commits = Math.floor(player_x / UNIT);
+            scores += player_vx * dt;
+            if (new_commits > commits) {
+                scores += (new_commits - commits) * player_vx / 10;
+            }
+            commits = new_commits;
+            render("game_loop", [player_x, player_y, scores]);
 
             return game_loop;
 	};
         var game_over = function(input, render){
-            if (input("LMB")) return new_game();
-            render('over_loop');
+            if (input("SPACE")) return new_game();
+            render("over_loop");
             return game_over;
         };
         return game_loop;
@@ -316,18 +336,6 @@ var world = new_game();
         }
     };
     scene
-        .on(C.X_KUP, function(e){
-            input(codeToName(e.key), false);
-        })
-        .on(C.X_KDOWN, function(e){
-            input(codeToName(e.key), true);
-        })
-        .on(C.X_MDOWN, function(e) {
-            input('LMB', true);
-        })
-        .on(C.X_MUP,function(e) {
-            input('LMB', false);
-        })
         .modify(function(){
             world = world(input, render);
         });
@@ -338,6 +346,7 @@ var world = new_game();
     /*
      * Smoothed image fix
      */
-
+    document.addEventListener('keydown', function(e){input(codeToName(e.keyCode), true);});
+    document.addEventListener('keyup', function(e){input(codeToName(e.keyCode), false);});
     document.getElementById('canv').getContext('2d').webkitImageSmoothingEnabled = false;
 }
