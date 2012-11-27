@@ -49,6 +49,8 @@ function start() {
      */
     var scene = b().band([0,Number.MAX_VALUE]);
 
+    Math.seedrandom("GitRunner");
+
     /*
      * Init rendering.
      * This step creates level and avatar objects for animatron's player.
@@ -58,16 +60,41 @@ function start() {
     var render = (function(scene) {
         var level = b().band([0, Number.MAX_VALUE]);
 
+       
+        var avatar_mask = b().band([0,Number.MAX_VALUE]).rect([0,0],[12,12]).reg([-6,-6]);
+
         var avatar = b().band([0,Number.MAX_VALUE])
-                .rect([0,0],[PLAYER_SIZE,PLAYER_SIZE])
-                .reg([ -PLAYER_SIZE/2, -PLAYER_SIZE/2 ]);
+                .image([0,0], "avatar.png")
+                .mask(avatar_mask);
+
+        /*
+         * frame += dt;
+         * frame = anim[time*fps%anim.length];
+         */
+                 
         
+        var makeCloud = function(x,y,name) {
+            return b().band([0,Number.MAX_VALUE]).image([x,y], name);
+        };
+
+        var clouds1 = b().band([0,Number.MAX_VALUE]);
+       
+        var i;
+        for (i = 0; i < 7 ; i ++) {
+            clouds1.add(makeCloud(Math.random()*(WIDTH/32 - 3)*32, Math.random()*(HEIGHT/32 - 1)*32, ["cloud1.png","cloud2.png","cloud3.png","cloud4.png","cloud4.png","cloud2.png"][Math.floor(Math.random()*6)]));
+        }
+        var clouds = b().band([0,Number.MAX_VALUE])
+        .add(b(clouds1))
+        .add(b(clouds1).move([WIDTH,0]));
+       
+
         var view = b().band([0,Number.MAX_VALUE]);
         view.add(level).add(avatar);
         var scores_meter = b().band([0,Number.MAX_VALUE])
                 .text([20,10],"1000",14).nostroke(); 
         var game_screen = b().band([0,Number.MAX_VALUE]);        
         game_screen
+            .add(clouds)
             .add(view)
            .add(scores_meter);
         scene.add(game_screen);
@@ -113,16 +140,30 @@ function start() {
                                   .reg([-r[2]/2, -r[3]/2])
                                   .fill('red'));
                     }
-                    
                 },
                 enter: function() {
                     game_screen.enable();
                 },
-                inside: function(player_x, player_y, scores){
-                    avatar.v.xdata.pos[0] = player_x;
+                inside: function(player_x, player_y, scores, dt, state){
+                    console.log(state);
+                    var fps = 4;
+                    var anims = {
+                        run: [0,1],
+                        jump: [2],
+                        thrust: [2],
+                        fall: [4],
+                        drop: [5]
+                    };
+                    var time = (new Date().getTime())/1000;
+                    var frame = anims[state].length === 1 ? anims[state][0] : anims[state][Math.floor(time*fps%2)];
+                    avatar.v.xdata.pos[0] = player_x - frame*12;
                     avatar.v.xdata.pos[1] = player_y;
+                    avatar_mask.v.xdata.pos[0] = player_x;
+                    avatar_mask.v.xdata.pos[1] = player_y;
                     view.v.xdata.pos[0] = 100 - player_x;
                     scores_meter.v.xdata.text.lines = Math.floor(scores).toString();
+                    clouds.v.xdata.pos[0] -= 10*dt; 
+                    clouds.v.xdata.pos[0] %= WIDTH;
                 }
             },
             over_loop: {
@@ -136,6 +177,9 @@ function start() {
             won_loop: {
                 enter: function() {
                     won_screen.enable();
+                },
+                inside: function(scores) {
+                    won_screen.v.xdata.text.lines = Math.floor(scores).toString();
                 },
                 exit: function(){
                     won_screen.disable();
@@ -246,7 +290,10 @@ function start() {
              * Game won rule
              */
 
-            if (player_x > TILES[TILES.length - 1][0] + TILES[TILES.length - 1][2] + 300) return won_loop;
+            if (player_x > TILES[TILES.length - 1][0] + TILES[TILES.length - 1][2] + 150) {
+                scores *= 2;
+                return won_loop;
+            }
 
             /*
              * Game over rule
@@ -281,43 +328,43 @@ function start() {
                 player_y -= platf_coll.overlap * platf_coll.normal.y;
             }
             
-            var thrust = function() {
-                player_vy += G*dt / 5;
-                fuel -= 100 * dt;
-                player_vx -= player_ax * dt / 5;
-                if (player_vx < 0) player_vx = 0;
-                prev = thrust;
+            var states = {
+                thrust: function() {
+                    player_vy += G*dt / 5;
+                    fuel -= 100 * dt;
+                    player_vx -= player_ax * dt / 5;
+                    if (player_vx < 0) player_vx = 0;
+                    prev = "thrust";
+                },
+                jump: function() {
+                    fuel = 100;
+                    player_vy = -120;
+                    prev = "jump";
+                },
+                run: function() {
+                    fuel = 100;
+                    player_vy = G * dt;
+                    player_vx += player_ax * dt;
+                    prev = "run";
+                },
+                fall: function() {
+                    fuel = 0;
+                    player_vy += G * dt;
+                    player_vx -= player_ax * dt / 5;
+                    if (player_vx < 0) player_vx = 0;
+                    prev = "fall";
+                },
+                drop: function() {
+                    player_vy = 200;
+                    player_vx -= player_ax * dt / 5;
+                    if (player_vx < 0) player_vx = 0;
+                    prev = "drop";
+                }
             };
             
-            var jump = function() {
-                fuel = 100;
-                player_vy = -120;
-                prev = jump;
-            };
+            
 
-            var run = function() {
-                fuel = 100;
-                player_vy = G * dt;
-                player_vx += player_ax * dt;
-                prev = run;
-            };
-
-            var fall = function(){
-                fuel = 0;
-                player_vy += G * dt;
-                player_vx -= player_ax * dt / 5;
-                if (player_vx < 0) player_vx = 0;
-                prev = fall;
-            };
-
-            var drop = function() {
-                player_vy = 200;
-                player_vx -= player_ax * dt / 5;
-                if (player_vx < 0) player_vx = 0;
-                prev = drop;
-            };
-
-            var prev = null;
+            var prev = "";
 
             /*
              * Calculate player's y velocity
@@ -325,12 +372,12 @@ function start() {
             
             if ( y_coll === 'LEG BUMP' )
             {
-                if ( input('SPACE') ) jump();
-                else run();
+                if ( input('SPACE') ) states.jump();
+                else states.run();
             } else {
-                if ( input('SPACE') && fuel > 0 ) thrust();
-                else if (input('SPACE')) drop();
-                else fall();
+                if ( input('SPACE') && fuel > 0 ) states.thrust();
+                else if (input('SPACE')) states.drop();
+                else states.fall();
             }
             
             var new_commits = Math.floor(player_x / UNIT);
@@ -339,7 +386,7 @@ function start() {
                 scores += (new_commits - commits) * player_vx / 10;
             }
             commits = new_commits;
-            render("game_loop", [player_x, player_y, scores]);
+            render("game_loop", [player_x, player_y, scores, dt, prev]);
 
             return game_loop;
 	};
@@ -350,21 +397,42 @@ function start() {
         };
         var won_loop = function(input, render){
             if (input("SPACE")) return new_game();
-            render("won_loop");
+            render("won_loop", [scores]);
             return won_loop;
         };
         return game_loop;
     };
 
 var init_loop = function() {
-    window.level_loaded = function(d) {
-        TILES = d.value.items.map(function(el){ return [el.time*UNIT, el.space*UNIT + 160/2,UNIT,UNIT,el.message];});
-        console.log(TILES);
+
+    var createCORSRequest = function(method, url){
+        var xhr = new XMLHttpRequest();
+        if ("withCredentials" in xhr) {
+            xhr.open(method, url, true);
+        } else
+        if (typeof XDomainRequest != "undefined") {
+            xhr = new XDomainRequest();
+            xhr.open(method, url);
+        } else {
+            xhr = null;
+        }
+        return xhr;
     };
-    var head = document.getElementsByTagName("head").item(0);
-    var script = document.createElement ("script");
-    script.src = "http://pipes.yahoo.com/pipes/pipe.run?_id=b92bca9b01e8338a3b7145a861e76a30&_render=json&name=Animatron&repo=player&_callback=level_loaded";
-    head.appendChild (script);
+
+    var name = "component";
+    var repo = "dom";
+    //var url = "http://pipes.yahoo.com/pipes/pipe.run?_id=1749e2b7d58eb7f46134936f7a134f21&_render=json&name=" + name  + "&repo=" + repo;
+    var url = "http://localhost:3000/?name=" + name  + "&repo=" + repo;
+    url = 'http://0.0.0.0:8080/level.json';
+    var req =  createCORSRequest('GET', url);
+    req.onload = function() {
+        console.log(req.responseText);
+        TILES = JSON.parse(req.responseText).value.items.map(function(el){ return [el.time*UNIT, el.space*UNIT + 160/2,UNIT,UNIT,el.message];});
+    };
+    req.onerror = function() {
+        console.log("error");
+    };
+    req.send();
     return load_loop;
 };
 
@@ -388,6 +456,7 @@ var world = init_loop;
      *          // true if pressed in the current player's cycle
      *      })
      */
+
     var codeToName = function(kc) {
         switch(kc) {
             case 32:
