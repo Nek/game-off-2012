@@ -3,7 +3,7 @@ function start() {
 
     var b = Builder._$, C = anm.C;
     var fhsv = Builder.fhsv;
-
+    var player = createPlayer('canv', {'zoom':2.0,'mode':C.M_DYNAMIC, 'anim':{"bgfill": { color: "#597dce" }}});
     /*
      * Init input handling system.
      * The returned function is polymorphic and works as simple dictionary of Numbers to Booleans.
@@ -59,34 +59,30 @@ function start() {
      */
     var render = (function(scene) {
         var level = b().band([0, Number.MAX_VALUE]);
-
-       
-        var avatar_mask = b().band([0,Number.MAX_VALUE]).rect([0,0],[12,12]).reg([-6,-6]);
-
+        
         var avatar = b().band([0,Number.MAX_VALUE])
-                .image([0,0], "avatar.png")
-                .mask(avatar_mask);
+                .sprite([0,0], "avatar.png", [12, 12], 0);
 
         /*
          * frame += dt;
          * frame = anim[time*fps%anim.length];
          */
-                 
+        
         
         var makeCloud = function(x,y,name) {
             return b().band([0,Number.MAX_VALUE]).image([x,y], name);
         };
 
         var clouds1 = b().band([0,Number.MAX_VALUE]);
-       
+        
         var i;
         for (i = 0; i < 7 ; i ++) {
             clouds1.add(makeCloud(Math.random()*(WIDTH/32 - 3)*32, Math.random()*(HEIGHT/32 - 1)*32, ["cloud1.png","cloud2.png","cloud3.png","cloud4.png","cloud4.png","cloud2.png"][Math.floor(Math.random()*6)]));
         }
         var clouds = b().band([0,Number.MAX_VALUE])
-        .add(b(clouds1))
-        .add(b(clouds1).move([WIDTH,0]));
-       
+                .add(b(clouds1))
+                .add(b(clouds1).move([WIDTH,0]));
+        
 
         var view = b().band([0,Number.MAX_VALUE]);
         view.add(level).add(avatar);
@@ -96,24 +92,76 @@ function start() {
         game_screen
             .add(clouds)
             .add(view)
-           .add(scores_meter);
+            .add(scores_meter);
         scene.add(game_screen);
         game_screen.disable();
 
-        var over_screen = b().band([0,Number.MAX_VALUE])
-                .text([WIDTH/2,HEIGHT/2], "GAME OVER",36).fill("red").nostroke();
+        /*
+         * 65 - 90
+         * A  - Z
+         * 
+         * set_text(over_screen)
+         * "asdasdsa".map(function(el){}
+         * "adasdasdsad".split('').map(function(ch){return ch.charCodeAt(0) - 65})
+         */
+
+        var add_super_string = function(el, s) {
+            var l = s.length;
+            var ss = b('super string').band([0,Number.MAX_VALUE]);
+            var i;
+            var letters = [];
+            var places = [];
+            for (i = 0; i < l; i ++) {
+                var lett = b('letter').band([0,Number.MAX_VALUE]).sprite([0, 0],'large_font.png', [48, 48], 0);
+                /*
+                 * 1. letter
+                 * 2. place
+                 */
+                ss.add(lett);
+                letters.push(lett);
+            }
+            var set_super_string = function(s) {
+                var codes = s.split('').map(function(ch){return ch.charCodeAt(0);});
+                var l = letters.length;
+                var i;
+                var dx = 0;
+                var dy = 0;
+                for (i = 0; i < l; i ++) {
+                    letters[i].x.frame = codes[i] - 65;
+                    letters[i].trans([i * 0.1, 0.5 + i * 0.1 ],[[ dx, dy + 48*3 ],[dx, dy]],C.E_QINOUT);
+                    var d = Math.random()*2*Math.PI;
+                    var nx = Math.cos(d)*WIDTH;
+                    var ny = Math.sin(d)*HEIGHT;
+                    letters[i].trans([100, 100.5],[[ 0, 0 ],[nx, ny]]);
+                    if (codes[i] === 32) dx += 12;
+                    else dx += 48;
+                    if (codes[i] === 10) {
+                        dx = 0;
+                        dy += 48;
+                    }
+                }
+            };
+            el.add(ss);
+            set_super_string(s);
+            return set_super_string;
+        };
+        
+        var over_screen = b().band([0,Number.MAX_VALUE]);
+        over_screen.x.pos = [60+6,48-6];
+        add_super_string(over_screen, "GAME\nOVER");
+        
         scene.add(over_screen);
         over_screen.disable();
-
+        
         var won_screen = b().band([0,Number.MAX_VALUE])
                 .text([WIDTH/2,HEIGHT/2], "YOU HAVE WON",36).fill("green").nostroke();
         scene.add(won_screen);
         won_screen.disable();
-
+        
         var load_screen =  b().band([0,Number.MAX_VALUE])
                 .text([WIDTH/2,HEIGHT/2], "LOADING",36).fill("green").nostroke();
         scene.add(load_screen);
-
+        
         var states = {
             load_loop: {
                 inside: function() {
@@ -145,7 +193,6 @@ function start() {
                     game_screen.enable();
                 },
                 inside: function(player_x, player_y, scores, dt, state){
-                    console.log(state);
                     var fps = 4;
                     var anims = {
                         run: [0,1],
@@ -156,22 +203,24 @@ function start() {
                     };
                     var time = (new Date().getTime())/1000;
                     var frame = anims[state].length === 1 ? anims[state][0] : anims[state][Math.floor(time*fps%2)];
-                    avatar.v.xdata.pos[0] = player_x - frame*12;
-                    avatar.v.xdata.pos[1] = player_y;
-                    avatar_mask.v.xdata.pos[0] = player_x;
-                    avatar_mask.v.xdata.pos[1] = player_y;
-                    view.v.xdata.pos[0] = 100 - player_x;
-                    scores_meter.v.xdata.text.lines = Math.floor(scores).toString();
-                    clouds.v.xdata.pos[0] -= 10*dt; 
-                    clouds.v.xdata.pos[0] %= WIDTH;
+                    avatar.x.frame = frame;
+                    avatar.x.pos[0] = player_x;
+                    avatar.x.pos[1] = player_y;
+                    view.x.pos[0] = 100 - player_x;
+                    scores_meter.x.text.lines = Math.floor(scores).toString();
+                    clouds.x.pos[0] -= 10*dt; 
+                    clouds.x.pos[0] %= WIDTH;
                 }
             },
             over_loop: {
                 enter: function() {
                     over_screen.enable();
+                    var ct = player.state.time;
+                    over_screen.time(function(t){ if (t - ct > 50) return 50; else return t - ct;});
                 },
                 exit: function() {
-                    over_screen.disable();
+                    var ct = player.state.time - 100;
+                    over_screen.time(function(t){ return t - ct;});
                 }
             },
             won_loop: {
@@ -179,7 +228,7 @@ function start() {
                     won_screen.enable();
                 },
                 inside: function(scores) {
-                    won_screen.v.xdata.text.lines = Math.floor(scores).toString();
+                    won_screen.x.text.lines = Math.floor(scores).toString();
                 },
                 exit: function(){
                     won_screen.disable();
@@ -458,13 +507,13 @@ function start() {
 
     var codeToName = function(kc) {
         switch(kc) {
-            case 32:
+        case 32:
             return 'SPACE';
-            case 37:
+        case 37:
             return 'LEFT';
-            case 39:
+        case 39:
             return 'RIGHT';
-            default:
+        default:
             return undefined;
         }
     };
@@ -473,9 +522,7 @@ function start() {
             world = world(input, render);
         });
 
-    var player = createPlayer('canv', {'zoom':2.0,'mode':C.M_DYNAMIC, 'anim':{"bgfill": { color: "#597dce" }}});
     player.load(scene).play();
-    
     /*
      * Smoothed image fix
      */
