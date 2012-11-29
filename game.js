@@ -403,46 +403,45 @@ function start() {
         return game_loop;
     };
 
-var init_loop = function() {
+    var init_loop = function() {
 
-    var createCORSRequest = function(method, url){
-        var xhr = new XMLHttpRequest();
-        if ("withCredentials" in xhr) {
-            xhr.open(method, url, true);
-        } else
-        if (typeof XDomainRequest != "undefined") {
-            xhr = new XDomainRequest();
-            xhr.open(method, url);
-        } else {
-            xhr = null;
-        }
-        return xhr;
+        var createCORSRequest = function(method, url){
+            var xhr = new XMLHttpRequest();
+            if ("withCredentials" in xhr) {
+                xhr.open(method, url, true);
+            } else
+            if (typeof XDomainRequest != "undefined") {
+                xhr = new XDomainRequest();
+                xhr.open(method, url);
+            } else {
+                xhr = null;
+            }
+            return xhr;
+        };
+
+        var name = "component";
+        var repo = "dom";
+        //var url = "http://pipes.yahoo.com/pipes/pipe.run?_id=1749e2b7d58eb7f46134936f7a134f21&_render=json&name=" + name  + "&repo=" + repo;
+        var url = "http://localhost:3000/?name=" + name  + "&repo=" + repo;
+        url = 'http://0.0.0.0:8080/level.json';
+        var req =  createCORSRequest('GET', url);
+        req.onload = function() {
+            TILES = JSON.parse(req.responseText).value.items.map(function(el){ return [el.time*UNIT, el.space*UNIT + 160/2,UNIT,UNIT,el.message];});
+        };
+        req.onerror = function() {
+            console.log("error");
+        };
+        req.send();
+        return load_loop;
     };
 
-    var name = "component";
-    var repo = "dom";
-    //var url = "http://pipes.yahoo.com/pipes/pipe.run?_id=1749e2b7d58eb7f46134936f7a134f21&_render=json&name=" + name  + "&repo=" + repo;
-    var url = "http://localhost:3000/?name=" + name  + "&repo=" + repo;
-    url = 'http://0.0.0.0:8080/level.json';
-    var req =  createCORSRequest('GET', url);
-    req.onload = function() {
-        console.log(req.responseText);
-        TILES = JSON.parse(req.responseText).value.items.map(function(el){ return [el.time*UNIT, el.space*UNIT + 160/2,UNIT,UNIT,el.message];});
+    var load_loop = function() {
+        render("load_loop");
+        if (TILES.length === 0) return load_loop;
+        return new_game();
     };
-    req.onerror = function() {
-        console.log("error");
-    };
-    req.send();
-    return load_loop;
-};
 
-var load_loop = function() {
-    render("load_loop");
-    if (TILES.length === 0) return load_loop;
-    return new_game();
-};
-
-var world = init_loop;
+    var world = init_loop;
     
     /*
      * This glues everything together.
