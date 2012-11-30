@@ -2,6 +2,7 @@ function start() {
 
 
     var b = Builder._$, C = anm.C;
+    var b = Builder._$, C = anm.C, ajax = anm.ajax;
     var fhsv = Builder.fhsv;
     var player = createPlayer('canv', {'zoom':2.0,'mode':C.M_DYNAMIC, 'anim':{"bgfill": { color: "#597dce" }}});
     /*
