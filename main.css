@@ -6,21 +6,14 @@
  */
 
 body {
-	background-color: rgb(130,195,255);
-        background: url("bgr.png");
+    background-color: rgb(130,195,255);
+    background: url("bgr.png");
 }
 
 #content {
-    width: 640px;
     margin-left: auto;
     margin-right: auto;
-}
-
-pre {
-	background-color: #ffffec;
-	color: #550;
-	padding: 0 10px;
-	/*border: 1px dashed #eeeedc;*/
+    width: 700px;
 }
 
 body {
@@ -31,39 +24,29 @@ body {
     color: #ffe707;
 }
 
+a, a:hover {
+    color: #ffe707;
+}
+
 a:visited {
     color: #ff972f;
 }
 
-h1 {
-    font-weight: bold;
-}
-
 canvas {
+    outline: none;
     border: solid 30px #cf82ff;
 }
 
 p {
-    width: 700px;
+    width: 640px;
+    margin-left: auto;
+    margin-right: auto;    
 }
 
 ul, li {
+    width: 640px;
+    margin-left: auto;
+    margin-right: auto;
     list-style-type: none;
     padding: 0;
-    margin-left: 0;
-}
-
-hr {
-	height: 2px;
-	border: 0;
-	background-color: #999;
-	margin-top: 2.5em;
-}
-
-#copyright {
-	color: #666;
-	font-size: 0.8em;
-	position: fixed;
-	bottom: 5px;
-	right: 5px;
 }
