@@ -25,7 +25,7 @@ function start() {
 
     var b = Builder._$, C = anm.C, ajax = anm.ajax;
     var fhsv = Builder.fhsv;
-    var player = createPlayer('canv', {'zoom':2.0,'mode':C.M_DYNAMIC, 'anim':{"bgfill": { color: "#597dce" }}});
+    var player = createPlayer('canv', {'zoom':2.0,'mode':C.M_DYNAMIC, 'anim':{"bgfill": { color: "#0082ff" }}});
     /*
      * Init input handling system.
      * The returned function is polymorphic and works as simple dictionary of Numbers to Booleans.
@@ -627,7 +627,7 @@ function start() {
 
     var codeToName = function(kc) {
         switch(kc) {
-        case 32:
+        case 90:
             return 'SPACE';
         case 37:
             return 'LEFT';
@@ -646,7 +646,9 @@ function start() {
     /*
      * Smoothed image fix
      */
-    document.addEventListener('keydown', function(e){input(codeToName(e.keyCode), true);});
-    document.addEventListener('keyup', function(e){input(codeToName(e.keyCode), false);});
+    document.addEventListener('keydown',
+    function(e){input(codeToName(e.keyCode), true);});
+    document.addEventListener('keyup',
+    function(e){input(codeToName(e.keyCode), false);});
     document.getElementById('canv').getContext('2d').webkitImageSmoothingEnabled = false;
 }

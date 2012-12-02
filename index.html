@@ -9,7 +9,9 @@
 <html>
 <head>
     <title>The Animatron HTML5 Player Demo</title>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta http-equiv="Content-Type" content="text/html;
+					     charset=utf-8">
+<link href='http://fonts.googleapis.com/css?family=Press+Start+2P' rel='stylesheet' type='text/css'>
     <link rel="stylesheet" href="./main.css" type="text/css"/>
     <script src="collide.js"></script>
     <script src="http://davidbau.com/encode/seedrandom-min.js"></script>
@@ -20,14 +22,29 @@
 </head>
 
 <body onload="start();">
-
+<div id="content">
+<p>In a magic world far far away a little guy runs through the level
+    built from GitHub project branches. The faster & further he runs
+    the better score he gets and the only thing he wants is a high score!</p>
+<p>Z to jump and do everything else.</p>
 <canvas id="canv" width="640" height="360"></canvas>
+<p>If level constantly fails to load try another one:<br>
+<a href="?name=SteveSanderson&repo=knockout">SteveSanderson\knockout</a><br>
+<a href="?name=Animatron&repo=player">Animatron\player</a><br>
+<a href="?name=documentcloud&repo=underscore">documentcloud\underscore</a>
+</p>
 
-<h3>Notable things used</h3>
-<p>Animatron player
-    from <a href="https://github.com/Animatron">Animatron project</a></p>
-<p>Tileset drawn by <a href="http://opengameart.org/users/surt">Carl Olsson</a></p>
-<p>Pseudorandom number generator programmed by <a href="http://davidbau.com">David Bau</a></p>
+<ul>
+<li>Notable things used:</li>
+<li>Animatron player
+    from <a href="https://github.com/Animatron">Animatron project</a></li>
+<li>Tileset drawn by <a href="http://opengameart.org/users/surt">Carl Olsson</a></li>
+<li>Pseudorandom number generator programmed
+    by <a href="http://davidbau.com">David Bau</a></li>
+</ul>
+</p>
+</div>
+
 </body>
 
 </html>
