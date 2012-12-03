@@ -651,4 +651,5 @@ function start() {
     document.addEventListener('keyup',
     function(e){input(codeToName(e.keyCode), false);});
     document.getElementById('canv').getContext('2d').webkitImageSmoothingEnabled = false;
+    document.getElementById('canv').getContext('2d').imageSmoothingEnabled = false;
 }
