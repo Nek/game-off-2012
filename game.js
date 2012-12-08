@@ -226,13 +226,9 @@ function start() {
             error_loop: {
                 enter: function() {
                     error_screen.enable();
-                    //var ct = player.state.time;
-                    //load_screen.time(function(t){ if (t - ct > 50) return 50; else return t - ct;});
                 },
                 exit: function(){
                     error_screen.disable();
-                    //var ct = player.state.time - 100;
-                    //load_screen.time(function(t){ return t - ct;});
                 }
             },
             load_loop: {
@@ -298,7 +294,7 @@ function start() {
                     var ct = player.state.time;
                     over_screen.time(function(t){ if (t - ct > 50) return 50; else return t - ct;});
                 },
-                inside: function(dt) {
+                inside: function(player_x, player_y, scores, dt, state) {
                     clouds.x.pos[0] -= 10*dt; 
                     clouds.x.pos[0] %= WIDTH;
                     var time = (new Date().getTime())/1000;
@@ -315,7 +311,7 @@ function start() {
                     var ct = player.state.time;
                     won_screen.time(function(t){ if (t - ct > 50) return 50; else return t - ct;});
                 },
-                inside: function(scores, dt) {
+                inside: function(player_x, player_y, scores, dt, state) {
                     update_scores(Math.floor(scores).toString());
                     clouds.x.pos[0] -= 10*dt; 
                     clouds.x.pos[0] %= WIDTH;
@@ -360,6 +356,7 @@ function start() {
      * We don't care about the function's returned value.
      */
     var new_game = function () {
+
 	var player_x = 0;
 	var player_y = 0;
         var player_vy = 0;
@@ -419,42 +416,42 @@ function start() {
         var dt = 0;
         var second_jump = false;
         
-        var thrust = function(dt) {
+        function thrust(dt) {
             player_vy += G*dt / 5;
             fuel -= 100 * dt;
             player_vx -= player_ax * dt / 5;
             if (player_vx < 0) player_vx = 0;
             prev = "thrust";
-        };
-        var jump =  function(dt) {
+        }
+        function jump(dt) {
             fuel = 70;
             player_vy = -120;
             prev = "jump";
-        };
-        var jump2 =  function(dt) {
+        }
+        function  jump2(dt) {
             fuel = 0;
             player_vy = -180;
             prev = "jump2";
-        };
-        var run = function(dt) {
+        }
+        function run(dt) {
             fuel = 70;
             player_vy = G * dt;
             player_vx += player_ax * dt;
             prev = "run";
-        };
-        var fall = function(dt) {
+        }
+        function  fall(dt) {
             fuel = 0;
             player_vy += G * dt;
             player_vx -= player_ax * dt / 5;
             if (player_vx < 0) player_vx = 0;
             prev = "fall";
-        };
-        var drop = function(dt) {
+        }
+        function drop(dt) {
             player_vy = 200;
             player_vx -= player_ax * dt / 5;
             if (player_vx < 0) player_vx = 0;
             prev = "drop";
-        };
+        }
 
         var states = {
             thrust: thrust,
@@ -465,7 +462,7 @@ function start() {
             drop: drop
         };
         
-        var game_loop = function(input, render){
+        function  game_loop(input, render){
 
             /*
              * Calculate delta time
@@ -488,20 +485,14 @@ function start() {
             var flag_coll = multicollide(rect(player_x, player_y, PLAYER_SIZE, PLAYER_SIZE), [flag_rect]); 
             if (flag_coll) {
                 scores *= 2;
-                render("game_loop", [player_x, player_y, scores, dt, prev]);
-                return won_loop;
+                return [won_loop, [player_x, player_y, scores, dt, prev]];
             }
-//            if (player_x > TILES[TILES.length - 1][0] + TILES[TILES.length - 1][2] + 150) {
- //               scores *= 2;
-  //              return won_loop;
-  //          }
-
             /*
              * Game over rule
              */
             
             var hazard_coll = multicollide(rect(player_x, player_y, PLAYER_SIZE, PLAYER_SIZE), hazards); 
-            if (hazard_coll || player_y > 360 + 50) return over_loop;
+            if (hazard_coll || player_y > 360 + 50) return [over_loop];
             
             var platf_coll = multicollide(rect(player_x, player_y, PLAYER_SIZE, PLAYER_SIZE), platforms);
             var xd = player_vx > 0 ? 1 : (player_vx < 0 ? -1 : 0);
@@ -532,6 +523,12 @@ function start() {
             /*
              * Calculate player's y velocity
              */
+
+            /*
+             * TODO:
+             * Rework following into object map
+             * with set of coll.input.action fields
+             */
             
             if ( y_coll === 'LEG BUMP' )
             {
@@ -554,11 +551,9 @@ function start() {
             }
             commits = new_commits;
 
-            render("game_loop", [player_x, player_y, scores, dt, prev]);
-
-            return game_loop;
-	};
-        var over_loop = function(input, render){
+            return [game_loop, [player_x, player_y, scores, dt, prev]];
+	}
+        function  over_loop(input, render){
             if (input("SPACE")) return new_game();
             /*
              * Calculate delta time
@@ -567,10 +562,9 @@ function start() {
             var dt = (time - current_time) / 1000;
             current_time = time;
 
-            render("over_loop", [dt]);
-            return over_loop;
-        };
-        var won_loop = function(input, render){
+            return [over_loop, [player_x, player_y, scores, dt, prev]] ;
+        }
+        function   won_loop(input, render){
             if (input("SPACE")) return new_game();
             /*
              * Calculate delta time
@@ -578,13 +572,12 @@ function start() {
             var time = new Date().getTime();
             var dt = (time - current_time) / 1000;
             current_time = time;
-            render("won_loop", [scores, dt]);
-            return won_loop;
-        };
-        return game_loop;
+            return [won_loop, [player_x, player_y, scores, dt, prev]];
+        }
+        return [game_loop, [player_x, player_y, scores, dt, prev]];
     };
 
-    var init_loop = function() {
+    function init_loop() {
         var createCORSRequest = function(method, url){
             var xhr = new XMLHttpRequest();
             if ("withCredentials" in xhr) {
@@ -608,23 +601,19 @@ function start() {
             TILES = JSON.parse(e.responseText || "null");
             if (TILES !== null) TILES = TILES.commits.map(function(el){ return [el.time*UNIT, el.space*UNIT + 160/2,UNIT,UNIT,el.message];});
         });
-        return load_loop;
-    };
+        return [load_loop];
+    }
 
-    var load_loop = function() {
-        render("load_loop");
-        if (TILES === null) return error_loop;
-        if (TILES.length === 0) return load_loop;
+    function load_loop() {
+        if (TILES === null) return [error_loop];
+        if (TILES.length === 0) return [load_loop];
         return new_game();
-    };
+    }
 
-    var error_loop = function() {
-        render("error_loop");
-        if (input('SPACE')) return init_loop;
-        return error_loop;
-    };
-
-    var world = init_loop;
+    function  error_loop() {
+        if (input('SPACE')) return [init_loop];
+        return [error_loop];
+    }
     
     /*
      * This glues everything together.
@@ -651,9 +640,13 @@ function start() {
             return undefined;
         }
     };
+
+    var world = [init_loop];
+
     scene
         .modify(function(){
-            world = world(input, render);
+            world = world[0](input);
+            render(world[0].name, world[1]);
         });
 
     player.load(scene).play();
