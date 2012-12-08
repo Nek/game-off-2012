@@ -147,6 +147,20 @@ function start() {
         
         var avatar = b().band([0,Number.MAX_VALUE])
                 .sprite([0,0], "avatar.png", [12, 12], 0);
+        
+        /*
+         * Framebased animation is a function of time, playback speed and a list of frame property values.
+         * ...x.frame = frame_based_animation(time, fps, [0,0,2,2]);
+         * var anim = frame_based_animation(fps, [0,0,2,2]);
+         * ...x.frame = anim(time);
+         * -------------------------
+         * ...x.anim = frame_based_animation(fps, [0,0,2,2]);
+         * ...x.frame = ...x.anim(time);
+         * ...x.play("jump");
+         * ...x.play_next("jump");
+         * if we want to name animations and switch them by name
+         * ...x.frame = 
+         */
 
         var flag = b().band([0, Number.MAX_VALUE])
                 .sprite([0,0], "flag.png", [12,12], 0);
