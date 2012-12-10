@@ -346,28 +346,23 @@ function start() {
 
     /*
      * Init world.
-     * Creates game world which is a function of input and render.
+     * Creates game world which is a function of input.
      * The contract for input is:
      * Number -> Boolean
      * So the game knows which key is pressed in the current game cycle.
-     * The contract for render is:
-     * Number -> Number -> undefined
-     * It takes player's position and renders it on screen.
-     * We don't care about the function's returned value.
      */
     var new_game = function () {
 
 	var player_x = 0;
 	var player_y = 0;
-        var player_vy = 0;
         var player_vx = 0;
+        var player_vy = 0;
 
         var commits = 0;
         var scores = 0;
         
         var player_ax = 40;
         var fuel = 70;
-        var on_legs = false;
 
         var current_time = new Date().getTime();
 
@@ -578,20 +573,6 @@ function start() {
     };
 
     function init_loop() {
-        var createCORSRequest = function(method, url){
-            var xhr = new XMLHttpRequest();
-            if ("withCredentials" in xhr) {
-                xhr.open(method, url, true);
-            } else
-            if (typeof XDomainRequest != "undefined") {
-                xhr = new XDomainRequest();
-                xhr.open(method, url);
-            } else {
-                xhr = null;
-            }
-            return xhr;
-        };
-
         var start = 0;
         var end = 500;
         
