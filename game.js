@@ -419,16 +419,19 @@ function start() {
             prev = "thrust";
         }
         function jump(dt) {
+            second_jump = false;
             fuel = 70;
             player_vy = -120;
             prev = "jump";
         }
         function  jump2(dt) {
+            second_jump = true;
             fuel = 0;
             player_vy = -180;
             prev = "jump2";
         }
         function run(dt) {
+            second_jump = false;
             fuel = 70;
             player_vy = G * dt;
             player_vx += player_ax * dt;
@@ -524,19 +527,57 @@ function start() {
              * Rework following into object map
              * with set of coll.input.action fields
              */
-            
-            if ( y_coll === 'LEG BUMP' )
+
+            /*
+             * Possible player states:
+             * run
+             * jump
+             * thrust
+             * jump2
+             * fall
+             * 
+             * 
+             * player = player(on_legs, action, second_jump);
+             */
+
+        var player = {
+            thrust: function(_, action) {
+                if (action) {
+                    if (fuel > 0) return thrust;
+                    else return fall;
+                };
+                if (!action) {
+                    return fall;
+                };
+            },
+            run: function(on_legs, action){
+                if (on_legs && action) return jump;
+                
+            },
+            jump: jump,
+            jump2: jump2,
+            fall: fall,
+        };
+
+            var on_legs = y_coll === 'LEG BUMP';
+            var action = input('SPACE');
+
+            if ( on_legs )
             {
-                second_jump = false;
-                if ( input('SPACE') ) states.jump(dt);
-                else states.run(dt);
-            } else {
-                if ( !second_jump && input('SPACE') && fuel > 0 ) states.thrust(dt);
-                else if ( !second_jump && input('SPACE') ) {
-                    second_jump = true;
-                    states.jump2(dt);
+                if ( action ) {
+                    states.jump(dt);
                 }
-                else states.fall(dt);
+                else {
+                    states.run(dt);
+                }
+            } else {
+                if ( action && !second_jump ) {
+                    if (fuel > 0) states.thrust(dt);
+                    else states.jump2(dt);
+                }
+                else {
+                    states.fall(dt);
+                }
             }
             
             var new_commits = Math.floor(player_x / UNIT);
