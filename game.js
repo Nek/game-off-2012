@@ -1,5 +1,28 @@
-function start() {
 
+function start()
+ {   
+
+    var b = Builder._$, C = anm.C, ajax = anm.ajax;
+    var fhsv = Builder.fhsv;
+
+var preload = ["avatar.png","flag.png", "cloud1.png", "cloud2.png", "cloud3.png", "cloud4.png", "small_font.png", "large_font.png", "tile_bricks.png"];
+var loaded = {};
+
+    var i;
+    var cb = function(e) {
+        preload.splice(preload.indexOf(e), 1);
+        if (preload.length === 0) start2(b, C, ajax);
+    }
+    for ( i = 0; i < preload.length; i ++) {     
+        b().image([0,0], preload[i], cb);
+    };
+}
+
+function  start2(b, C, ajax) {
+    var player = createPlayer('canv', {'zoom':2.0,'mode':C.M_DYNAMIC, 'anim':{"bgfill": { color: "#0082ff" }}});
+
+   // var music = AudioFX('sfx/music', { formats: ['ogg', 'mp3'], loop: true, autoplay: true });
+    var jumpfx = AudioFX('sfx/jump', { formats: ['ogg', 'mp3'], pool: 10 });
     // from http://stackoverflow.com/questions/2090551/parse-query-string-in-javascript
     var getQueryVariable = function(variable) {
         var query = window.location.search.substring(1);
@@ -22,10 +45,6 @@ function start() {
     var name = getQueryVariable('name') || "component";
     var repo = getQueryVariable('repo') || "dom";
     
-
-    var b = Builder._$, C = anm.C, ajax = anm.ajax;
-    var fhsv = Builder.fhsv;
-    var player = createPlayer('canv', {'zoom':2.0,'mode':C.M_DYNAMIC, 'anim':{"bgfill": { color: "#0082ff" }}});
     /*
      * Init input handling system.
      * The returned function is polymorphic and works as simple dictionary of Numbers to Booleans.
@@ -146,7 +165,7 @@ function start() {
         var level = b().band([0, Number.MAX_VALUE]);
         
         var avatar = b().band([0,Number.MAX_VALUE])
-                .sprite([0,0], "avatar.png", [12, 12], 0);
+                .sprite([0,0], "avatar.png", [12, 12], 0, function() {console.log("avatar graphics loaded")});
         
         /*
          * Framebased animation is a function of time, playback speed and a list of frame property values.
@@ -540,31 +559,13 @@ function start() {
              * player = player(on_legs, action, second_jump);
              */
 
-        var player = {
-            thrust: function(_, action) {
-                if (action) {
-                    if (fuel > 0) return thrust;
-                    else return fall;
-                };
-                if (!action) {
-                    return fall;
-                };
-            },
-            run: function(on_legs, action){
-                if (on_legs && action) return jump;
-                
-            },
-            jump: jump,
-            jump2: jump2,
-            fall: fall,
-        };
-
             var on_legs = y_coll === 'LEG BUMP';
             var action = input('SPACE');
 
             if ( on_legs )
             {
                 if ( action ) {
+                    jumpfx.play();
                     states.jump(dt);
                 }
                 else {
@@ -573,7 +574,10 @@ function start() {
             } else {
                 if ( action && !second_jump ) {
                     if (fuel > 0) states.thrust(dt);
-                    else states.jump2(dt);
+                    else {
+                        jumpfx.play();
+                        states.jump2(dt);
+                    }
                 }
                 else {
                     states.fall(dt);
