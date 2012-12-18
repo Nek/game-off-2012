@@ -1,5 +1,5 @@
-
-function start()
+var start, start2;
+start = function()
  {   
 
     var b = Builder._$, C = anm.C, ajax = anm.ajax;
@@ -18,8 +18,8 @@ var loaded = {};
     };
 }
 
-function  start2(b, C, ajax) {
     var player = createPlayer('canv', {'zoom':2.0,'mode':C.M_DYNAMIC, 'anim':{"bgfill": { color: "#0082ff" }}});
+start2 = function(b, C, ajax) {
 
    // var music = AudioFX('sfx/music', { formats: ['ogg', 'mp3'], loop: true, autoplay: true });
     var jumpfx = AudioFX('sfx/jump', { formats: ['ogg', 'mp3'], pool: 10 });
@@ -165,7 +165,7 @@ function  start2(b, C, ajax) {
         var level = b().band([0, Number.MAX_VALUE]);
         
         var avatar = b().band([0,Number.MAX_VALUE])
-                .sprite([0,0], "avatar.png", [12, 12], 0, function() {console.log("avatar graphics loaded")});
+                .sprite([0,0], "avatar.png", [12, 12], 0);
         
         /*
          * Framebased animation is a function of time, playback speed and a list of frame property values.
