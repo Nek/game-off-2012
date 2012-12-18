@@ -22,6 +22,8 @@ var loaded = {};
 start2 = function(b, C, ajax) {
 
    // var music = AudioFX('sfx/music', { formats: ['ogg', 'mp3'], loop: true, autoplay: true });
+    var WIDTH = 320;
+    var HEIGHT = 180;
     var jumpfx = AudioFX('sfx/jump', { formats: ['ogg', 'mp3'], pool: 10 });
     // from http://stackoverflow.com/questions/2090551/parse-query-string-in-javascript
     var getQueryVariable = function(variable) {
@@ -74,9 +76,6 @@ start2 = function(b, C, ajax) {
     /*
      * Some constants
      */
-
-    var WIDTH = 320;
-    var HEIGHT = 180;
     var G = 400;
     var UNIT = 16;
     var PLAYER_SIZE = UNIT*0.75;
