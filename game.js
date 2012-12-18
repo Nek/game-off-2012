@@ -237,7 +237,7 @@ start2 = function(b, C, ajax) {
         
         var load_screen =  b().band([0,Number.MAX_VALUE]);
         load_screen.x.pos = [12+6,48-6];
-        add_super_string(load_screen, "LOADING", 'large_font.png', [48,48], 0, large_text_animator);
+        add_super_string(load_screen, "PLEASE\nWAIT", 'large_font.png', [48,48], 0, large_text_animator);
         scene.add(load_screen);
 
         var states = {
