@@ -12,18 +12,38 @@ var loaded = {};
     var cb = function(e) {
         preload.splice(preload.indexOf(e), 1);
         if (preload.length === 0) start2(b, C, ajax);
-    }
+    };
     for ( i = 0; i < preload.length; i ++) {     
         b().image([0,0], preload[i], cb);
-    };
-}
+    }
+};
 
-    var player = createPlayer('canv', {'zoom':2.0,'mode':C.M_DYNAMIC, 'anim':{"bgfill": { color: "#0082ff" }}});
 start2 = function(b, C, ajax) {
 
-   // var music = AudioFX('sfx/music', { formats: ['ogg', 'mp3'], loop: true, autoplay: true });
     var WIDTH = 320;
     var HEIGHT = 180;
+ 
+    var canv = document.getElementById('canv');
+    var ctx = canv.getContext('2d');
+    var is_chrome = navigator.userAgent.toLowerCase().indexOf('chrome') > -1;
+    var is_safari = ctx.webkitBackingStorePixelRatio && !is_chrome;
+    var zoom = 2.0;
+  
+    if (is_safari) {
+        zoom = 1.0;
+    }
+
+    var player = createPlayer('canv', {'zoom': zoom,'mode':C.M_DYNAMIC, 'anim':{"bgfill": { color: "#0082ff" }}});
+    ctx.webkitImageSmoothingEnabled = false;
+    ctx.mozImageSmoothingEnabled = false;
+
+    if (is_safari) {
+        canv.width = WIDTH;
+        canv.height = HEIGHT;        
+    }
+ 
+ 
+    var music = AudioFX('sfx/music', { formats: ['ogg', 'mp3'], loop: true, autoplay: true });
     var jumpfx = AudioFX('sfx/jump', { formats: ['ogg', 'mp3'], pool: 10 });
     // from http://stackoverflow.com/questions/2090551/parse-query-string-in-javascript
     var getQueryVariable = function(variable) {
@@ -682,6 +702,4 @@ start2 = function(b, C, ajax) {
     function(e){input(codeToName(e.keyCode), true);});
     document.addEventListener('keyup',
     function(e){input(codeToName(e.keyCode), false);});
-    document.getElementById('canv').getContext('2d').webkitImageSmoothingEnabled = false;
-    document.getElementById('canv').getContext('2d').imageSmoothingEnabled = false;
 }
