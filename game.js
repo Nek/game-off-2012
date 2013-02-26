@@ -1,12 +1,9 @@
 var start, start2;
 start = function()
  {   
-
     var b = Builder._$, C = anm.C, ajax = anm.ajax;
-    var fhsv = Builder.fhsv;
 
 var preload = ["avatar.png","flag.png", "cloud1.png", "cloud2.png", "cloud3.png", "cloud4.png", "small_font.png", "large_font.png", "tile_bricks.png"];
-var loaded = {};
 
     var i;
     var cb = function(e) {
