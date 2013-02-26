@@ -683,7 +683,7 @@ start2 = function(b, C, ajax) {
             if ( on_legs )
             {
                 if ( action ) {
-                    //jumpfx.play();
+                    jumpfx.play();
                     states.jump(dt);
                 }
                 else {
@@ -693,7 +693,7 @@ start2 = function(b, C, ajax) {
                 if ( action && !second_jump ) {
                     if (fuel > 0) states.thrust(dt);
                     else {
-                        //jumpfx.play();
+                        jumpfx.play();
                         states.jump2(dt);
                     }
                 }
