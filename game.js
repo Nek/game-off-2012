@@ -128,7 +128,6 @@ start2 = function(b, C, ajax) {
         var ss = b('super string').band([0,Number.MAX_VALUE]);
         var i;
         var letters = [];
-        var places = [];
         for (i = 0; i < l; i ++) {
             var lett = b(font);//.band([0,Number.MAX_VALUE]).sprite([0, 0], fnt, dim, 0);
             /*
