@@ -17,6 +17,119 @@ var preload = ["avatar.png","flag.png", "cloud1.png", "cloud2.png", "cloud3.png"
 
 start2 = function(b, C, ajax) {
 
+
+    function animate(spr, desc) {
+        /*
+         + 1. desc == []
+         + 2. desc == {frames:[]}
+         + 2. desc == {name:[]}
+         + 2. desc == {name:[], name2: [], name3: []}
+         + 2. desc == {fps:24, name:[], name2: [], name3: []}
+         3. desc == {name:{frames:[],fps:24}}
+         4. desc == {name:{frames:[],fps:24},name2:{frames:[],fps:24, loop: true},name3:{frames:[],fps:24}}
+         5. desc == {name:{frames:[],fps:24},name2:{frames:[],fps:24, loop: true},name3:{frames:[],fps:24}}
+         */
+        var FPS = 24;
+
+        var sd = superduck();
+        var $ = sd.$;
+        var is = sd.is;
+        var parseAnim;
+        var time = 0;
+        var playing = true;
+
+        /*
+         return adhoc objects composed from functionality
+         */
+
+        parseAnim = sd.methods(
+            [{frames:Array, fps:Number}, function(v) {return (function(anim) {
+                console.log("Anim desc is {frames:[]}");
+                var FPS = v.fps;
+                spr.play = function() {
+                    playing = true;
+                };
+                spr.stop = function() {
+                    playing = false;
+                };
+                return function(t,d) {
+                    if (playing) time = t*d;
+                    spr.x.frame = anim.length === 1 ? anim[0] : anim[Math.floor(time*FPS%anim.length)];
+                };
+            })( v.frames);}],
+            [{frames:Array}, function(v) {return (function(anim) {
+                console.log("Anim desc is {frames:[]}");
+                spr.play = function() {
+                    playing = true;
+                };
+                spr.stop = function() {
+                    playing = false;
+                };
+                return function(t,d) {
+                    if (playing) time = t*d;
+                    spr.x.frame = anim.length === 1 ? anim[0] : anim[Math.floor(time*FPS%anim.length)];
+                };
+            })( v.frames);}],
+            [[], function(v) {return (function(anim) {
+                console.log("Anim desc is Array");
+                spr.play = function() {
+                    playing = true;
+                };
+                spr.stop = function() {
+                    playing = false;
+                };
+                return function(t,d) {
+                    if (playing) time = t*d;
+                    spr.x.frame = anim.length === 1 ? anim[0] : anim[Math.floor(time*FPS%anim.length)];
+                };
+            })(v);}],
+            [{fps:Number}, function(v) {return (function(anims) {
+                console.log("Anim desc is {fps:Number}");
+                var FPS = anims.fps;
+                delete anims.fps;
+                var keys = Object.keys(anims);
+                if (keys.length === 0) throw new Error("The anima config object is empty.");
+                var anim = anims[keys[0]];
+                spr.switch = function(name) {
+                    anim = anims[name];
+                };
+                spr.play = function() {
+                    playing = true;
+                };
+                spr.stop = function() {
+                    playing = false;
+                };
+                return function(t,d) {
+                    if (playing) time = t*d;
+                    spr.x.frame = anim.length === 1 ? anim[0] : anim[Math.floor(time*FPS%anim.length)];
+                };
+            })(v);}],
+            [{}, function(v) {return (function(anims) {
+                console.log("Anim desc is Object");
+                var keys = Object.keys(anims);
+                if (keys.length === 0) throw new Error("The anima config object is empty.");
+                var anim = anims[keys[0]];
+                spr.switch = function(name) {
+                    anim = anims[name];
+                };
+                spr.play = function() {
+                    playing = true;
+                };
+                spr.stop = function() {
+                    playing = false;
+                };
+                return function(t,d) {
+                    if (playing) time = t*d;
+                    spr.x.frame = anim.length === 1 ? anim[0] : anim[Math.floor(time*FPS%anim.length)];
+                };
+            })(v);}]
+        );
+
+        spr.modify(parseAnim(desc));
+
+        return spr;
+    }
+
     var WIDTH = 320;
     var HEIGHT = 180;
  
@@ -181,23 +294,22 @@ start2 = function(b, C, ajax) {
         
         var avatar = b().band([0,Number.MAX_VALUE])
                 .sprite([0,0], "avatar.png", [12, 12], 0);
-        
-        /*
-         * Framebased animation is a function of time, playback speed and a list of frame property values.
-         * ...x.frame = frame_based_animation(time, fps, [0,0,2,2]);
-         * var anim = frame_based_animation(fps, [0,0,2,2]);
-         * ...x.frame = anim(time);
-         * -------------------------
-         * ...x.anim = frame_based_animation(fps, [0,0,2,2]);
-         * ...x.frame = ...x.anim(time);
-         * ...x.play("jump");
-         * ...x.play_next("jump");
-         * if we want to name animations and switch them by name
-         * ...x.frame = 
-         */
+        animate( avatar,
+            {
+                fps:4,
+                run:[0, 1],
+                jump:[2],
+                jump2:[2],
+                thrust:[2],
+                fall:[4],
+                drop:[5]
+            }
+        );
 
         var flag = b().band([0, Number.MAX_VALUE])
                 .sprite([0,0], "flag.png", [12,12], 0);
+
+        animate(flag, {fps: 12, frames:[0,1,2,3,4,5]});
 
         var make_cloud = function(x,y,name) {
             return b().band([0,Number.MAX_VALUE]).image([x,y], name);
@@ -298,32 +410,24 @@ start2 = function(b, C, ajax) {
                     }
                 },
                 enter: function() {
+                    flag.play();
+                    avatar.play();
                     game_screen.enable();
                 },
                 inside: function(player_x, player_y, scores, dt, state){
-                    var fps = 4;
-                    var anims = {
-                        run: [0,1],
-                        jump: [2],
-                        jump2: [2],
-                        thrust: [2],
-                        fall: [4],
-                        drop: [5]
-                    };
                     var time = (new Date().getTime())/1000;
-                    var frame = anims[state].length === 1 ? anims[state][0] : anims[state][Math.floor(time*fps%2)];
-                    avatar.x.frame = frame;
+                    avatar.switch(state);
                     avatar.x.pos[0] = player_x;
                     avatar.x.pos[1] = player_y;
                     view.x.pos[0] = 100 - player_x;
                     update_scores(Math.floor(scores).toString());
                     clouds.x.pos[0] -= 10*dt; 
                     clouds.x.pos[0] %= WIDTH;
-                    flag.x.frame = Math.floor(time*12%6);
                 }
             },
             over_loop: {
                 enter: function() {
+                    avatar.stop();
                     over_screen.enable();
                     var ct = player.state.time;
                     over_screen.time(function(t){ if (t - ct > 50) return 50; else return t - ct;});
@@ -332,7 +436,6 @@ start2 = function(b, C, ajax) {
                     clouds.x.pos[0] -= 10*dt; 
                     clouds.x.pos[0] %= WIDTH;
                     var time = (new Date().getTime())/1000;
-                    flag.x.frame = Math.floor(time*12%6);
                 },
                 exit: function() {
                     var ct = player.state.time - 100;
@@ -341,6 +444,7 @@ start2 = function(b, C, ajax) {
             },
             won_loop: {
                 enter: function() {
+                    avatar.stop();
                     won_screen.enable();
                     var ct = player.state.time;
                     won_screen.time(function(t){ if (t - ct > 50) return 50; else return t - ct;});
@@ -350,7 +454,6 @@ start2 = function(b, C, ajax) {
                     clouds.x.pos[0] -= 10*dt; 
                     clouds.x.pos[0] %= WIDTH;
                     var time = (new Date().getTime())/1000;
-                    flag.x.frame = Math.floor(time*12%6);
                 },
                 exit: function(){
                     var ct = player.state.time - 100;
@@ -580,7 +683,7 @@ start2 = function(b, C, ajax) {
             if ( on_legs )
             {
                 if ( action ) {
-                    jumpfx.play();
+                    //jumpfx.play();
                     states.jump(dt);
                 }
                 else {
@@ -590,7 +693,7 @@ start2 = function(b, C, ajax) {
                 if ( action && !second_jump ) {
                     if (fuel > 0) states.thrust(dt);
                     else {
-                        jumpfx.play();
+                        //jumpfx.play();
                         states.jump2(dt);
                     }
                 }
