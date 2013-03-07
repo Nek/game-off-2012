@@ -16,8 +16,6 @@ var preload = ["avatar.png","flag.png", "cloud1.png", "cloud2.png", "cloud3.png"
 };
 
 start2 = function(b, C, ajax) {
-
-
     function animate(spr, desc) {
         /*
          + 1. desc == []
@@ -32,7 +30,6 @@ start2 = function(b, C, ajax) {
         var FPS = 24;
 
         var sd = superduck();
-        var $ = sd.$;
         var is = sd.is;
         var parseAnim;
         var time = 0;
@@ -736,15 +733,22 @@ start2 = function(b, C, ajax) {
     };
 
     function init_loop() {
-        var start = 0;
-        var end = 500;
+        if (typeof window.level === "undefined")
+        {
+            var start = 0;
+            var end = 500;
         
-        var url = serv + "?name=" + name  + "&repo=" + repo + "&start=" + start + "&end=" + end;
+            var url = serv + "?name=" + name  + "&repo=" + repo + "&start=" + start + "&end=" + end;
  
-        ajax(url, function(e){
-            TILES = JSON.parse(e.responseText || "null");
-            if (TILES !== null) TILES = TILES.commits.map(function(el){ return [el.time*UNIT, el.space*UNIT + 160/2,UNIT,UNIT,el.message];});
-        });
+            ajax(url, function(e){
+                TILES = JSON.parse(e.responseText || "null");
+                if (TILES !== null) TILES = TILES.commits.map(function(el){ return [el.time*UNIT, el.space*UNIT + 160/2,UNIT,UNIT,el.message];});
+            });
+        }
+        else {
+            TILES = level.commits.map(function (el) {
+                return [el.time * UNIT, el.space * UNIT + 160 / 2, UNIT, UNIT, el.message];
+            })}
         return [load_loop];
     }
 
